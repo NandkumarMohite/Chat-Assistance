@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI Chat Bot powered by Ollama — ask questions in plain English and interact with ShamStore APIs intelligently." />
+  <title>ShamStore AI Assistant — Intelligent API Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Animated background orbs -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- App Shell -->
+  <div class="app-shell">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="logo-text">ShamStore AI</span>
+        </div>
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <button class="new-chat-btn" id="newChatBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        New Chat
+      </button>
+
+      <!-- Model selector -->
+      <div class="sidebar-section">
+        <div class="section-label">Model</div>
+        <div class="model-select-wrap">
+          <select id="modelSelect" class="model-select">
+            <option value="deepseek-r1">deepseek-r1 (thinking)</option>
+            <option value="qwen3">qwen3 (thinking)</option>
+            <option value="llama3.2">llama3.2</option>
+            <option value="mistral">mistral</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="sidebar-section">
+        <div class="section-label">Status</div>
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot"></span>
+          <span class="status-text">Checking...</span>
+        </div>
+        <div class="status-pill backend-status" id="backendPill" style="margin-top: 6px">
+          <span class="status-dot"></span>
+          <span class="status-text">Backend...</span>
+        </div>
+      </div>
+
+      <!-- Suggested queries -->
+      <div class="sidebar-section suggested-queries">
+        <div class="section-label">Try asking</div>
+        <div class="query-chips" id="queryChips">
+          <button class="chip" data-query="Show me all users">👥 All users</button>
+          <button class="chip" data-query="Show all purchase history">🛒 All purchases</button>
+          <button class="chip" data-query="Get purchase history for user 1">📋 User 1 orders</button>
+          <button class="chip" data-query="How many users are registered?">📊 User count</button>
+          <button class="chip" data-query="Show me details for user 2">🔍 User details</button>
+          <button class="chip" data-query="What APIs are available?">🔌 Available APIs</button>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="sidebar-section chat-history">
+        <div class="section-label">Recent chats</div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">No history yet</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="version-badge">v2.0 · API-Powered by Ollama</div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CHAT AREA ── -->
+    <main class="chat-main" id="chatMain">
+
+      <!-- Top bar -->
+      <header class="chat-header">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="header-title">
+          <h1>ShamStore AI Assistant</h1>
+          <span class="header-subtitle" id="headerSubtitle">Ask me anything about your store</span>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="clearChatBtn" title="Clear chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Messages area -->
+      <div class="messages-area" id="messagesArea">
+
+        <!-- Welcome screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="welcome-glow" aria-hidden="true"></div>
+          <div class="welcome-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h2 class="welcome-title">Good evening! 👋</h2>
+          <p class="welcome-desc">I'm your ShamStore AI Assistant powered by Ollama. Ask me questions in plain English — I'll call the right API and translate results into clear, human-readable answers.</p>
+          <div class="welcome-features">
+            <div class="feature-card">
+              <div class="feature-icon">🧠</div>
+              <div class="feature-text">
+                <strong>Smart Routing</strong>
+                <span>Ollama identifies which API to call automatically</span>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">🔌</div>
+              <div class="feature-text">
+                <strong>API Powered</strong>
+                <span>Connects to your ShamStore backend in real time</span>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">💬</div>
+              <div class="feature-text">
+                <strong>Human Answers</strong>
+                <span>Raw API data decoded into plain language</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area">
+        <div class="input-wrap">
+          <textarea
+            id="messageInput"
+            class="message-input"
+            placeholder="Ask anything... e.g. 'Show me all users' or 'What did user 1 purchase?'"
+            rows="1"
+            maxlength="2000"
+          ></textarea>
+          <div class="input-actions">
+            <span class="char-count" id="charCount">0/2000</span>
+            <button class="send-btn" id="sendBtn" title="Send message" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="input-footer">
+          <span>Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Templates (hidden) -->
+  <template id="userMsgTemplate">
+    <div class="message message-user">
+      <div class="msg-avatar msg-avatar-user">U</div>
+      <div class="msg-body">
+        <div class="msg-content"></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="aiMsgTemplate">
+    <div class="message message-ai">
+      <div class="msg-avatar msg-avatar-ai">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="msg-body">
+        <!-- Status steps -->
+        <div class="status-steps"></div>
+        <!-- Thinking block (collapsible) -->
+        <details class="thinking-block" hidden>
+          <summary class="thinking-summary">
+            <span class="thinking-icon">🧠</span>
+            <span>Model's thinking process</span>
+            <span class="thinking-chevron">›</span>
+          </summary>
+          <div class="thinking-content"></div>
+        </details>
+        <!-- API Call block (replaces SQL block) -->
+        <div class="api-block" hidden>
+          <div class="api-header">
+            <span class="api-badge">API</span>
+            <span class="api-title">API Call</span>
+            <button class="copy-btn" title="Copy API call">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="api-code"></pre>
+        </div>
+        <!-- Data table -->
+        <div class="data-block" hidden>
+          <div class="data-header">
+            <span class="data-badge">DATA</span>
+            <span class="data-count"></span>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table"></table>
+          </div>
+        </div>
+        <!-- Final answer -->
+        <div class="msg-content answer-content"></div>
+        <!-- Timestamp -->
+        <div class="msg-time"></div>
+      </div>
+    </div>
+  </template>
+
+  <script src="app_new.js"></script>
+</body>
+</html>
