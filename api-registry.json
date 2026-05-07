@@ -2,12 +2,16 @@
   "baseUrl": "http://localhost:8080",
   "serviceName": "ShamStore",
   "description": "ShamStore e-commerce backend API — manages users, products, categories, purchases, and more.",
-
   "dependencyChains": [
     {
       "id": "purchases_by_user_phone",
       "description": "Get purchase history for a user identified by phone number. First fetches all users, filters by phone, extracts userId, then fetches purchases for that user.",
-      "triggerKeywords": ["purchase", "order", "bought", "history"],
+      "triggerKeywords": [
+        "purchase",
+        "order",
+        "bought",
+        "history"
+      ],
       "triggerCondition": "user identifies a person by phone number (not by ID)",
       "steps": [
         {
@@ -28,7 +32,12 @@
     {
       "id": "purchases_by_user_email",
       "description": "Get purchase history for a user identified by email. First fetches all users, filters by email, extracts userId, then fetches purchases for that user.",
-      "triggerKeywords": ["purchase", "order", "bought", "history"],
+      "triggerKeywords": [
+        "purchase",
+        "order",
+        "bought",
+        "history"
+      ],
       "triggerCondition": "user identifies a person by email address (not by ID)",
       "steps": [
         {
@@ -49,7 +58,12 @@
     {
       "id": "purchases_by_user_name",
       "description": "Get purchase history for a user identified by name. First fetches all users, filters by name, extracts userId, then fetches purchases for that user.",
-      "triggerKeywords": ["purchase", "order", "bought", "history"],
+      "triggerKeywords": [
+        "purchase",
+        "order",
+        "bought",
+        "history"
+      ],
       "triggerCondition": "user identifies a person by their name (not by ID)",
       "steps": [
         {
@@ -68,8 +82,22 @@
       ]
     }
   ],
-
+  "_TODO_HOW_TO_ADD_NEW_API": "To add a New API to the AI Assistant, you ONLY need to add a new object inside the 'apis' array below! NO JavaScript code changes are needed in server.js or anywhere else. The AI will automatically read the new API, understand its description, and start using it.",
   "apis": [
+    {
+      "id": "get_all_sellers",
+      "name": "Get All Sellers",
+      "description": "Get All Sellers in the shop.",
+      "method": "GET",
+      "path": "/api/sellers",
+      "parameters": [],
+      "keywords": [
+        "get all Salers",
+        "all workers in shop",
+        "shop workers",
+        "salers mans"
+      ]
+    },
     {
       "id": "get_all_users",
       "name": "Get All Users",
