@@ -1,7 +1,7 @@
 {
   "baseUrl": "http://localhost:8080",
-  "serviceName": "ShamStore",
-  "description": "ShamStore e-commerce backend API — manages users, products, categories, purchases, and more.",
+  "serviceName": "Comau",
+  "description": "Comau backend API — manages users, products, categories, purchases, and more.",
   "dependencyChains": [
     {
       "id": "purchases_by_user_phone",

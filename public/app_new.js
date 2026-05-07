@@ -1,5 +1,5 @@
 /* ─────────────────────────────
-   ShamStore AI Chat — Frontend JS
+   Comau AI Chat — Frontend JS
    (API-powered, no DB calls)
    ───────────────────────────── */
 
@@ -9,7 +9,7 @@ const API_BASE = window.location.origin;
 let isStreaming = false;
 let conversation = [];
 let selectedModel = 'deepseek-r1';
-let jwtToken = localStorage.getItem('shamstore_jwt') || null;
+let jwtToken = localStorage.getItem('comau_jwt') || null;
 
 // ── DOM refs ──
 const messagesArea = document.getElementById('messagesArea');
@@ -30,6 +30,11 @@ const clearChatBtn = document.getElementById('clearChatBtn');
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 const sidebarToggle = document.getElementById('sidebarToggle');
 const headerSubtitle = document.getElementById('headerSubtitle');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+// ── Theme Init ──
+let currentTheme = localStorage.getItem('comau_theme') || 'dark';
+if (currentTheme === 'light') document.documentElement.classList.add('light-theme');
 
 // ── Init ──
 (async function init() {
@@ -114,6 +119,23 @@ function setupEventListeners() {
 
   mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('mobile-open'));
   sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+
+  themeToggleBtn.addEventListener('click', () => {
+    if (document.documentElement.classList.contains('light-theme')) {
+      document.documentElement.classList.remove('light-theme');
+      localStorage.setItem('comau_theme', 'dark');
+      themeToggleBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" /></svg>`;
+    } else {
+      document.documentElement.classList.add('light-theme');
+      localStorage.setItem('comau_theme', 'light');
+      themeToggleBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+    }
+  });
+
+  // Set initial icon based on theme
+  if (currentTheme === 'light') {
+    themeToggleBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  }
 
   queryChips.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -253,7 +275,7 @@ async function sendMessage() {
 
       case 'auth_token':
         jwtToken = data.token;
-        localStorage.setItem('shamstore_jwt', jwtToken);
+        localStorage.setItem('comau_jwt', jwtToken);
         console.log("Saved JWT Token to localStorage!");
         break;
 
@@ -362,10 +384,10 @@ function welcomeScreenHTML() {
       </svg>
     </div>
     <h2 class="welcome-title">Good ${getTimeOfDay()}! 👋</h2>
-    <p class="welcome-desc">I'm your ShamStore AI Assistant powered by Ollama. Ask me questions in plain English — I'll call the right API and translate results into clear, human-readable answers.</p>
+    <p class="welcome-desc">I'm your Comau AI Assistant powered by Ollama. Ask me questions in plain English — I'll call the right API and translate results into clear, human-readable answers.</p>
     <div class="welcome-features">
       <div class="feature-card"><div class="feature-icon">🧠</div><div class="feature-text"><strong>Smart Routing</strong><span>Ollama identifies which API to call automatically</span></div></div>
-      <div class="feature-card"><div class="feature-icon">🔌</div><div class="feature-text"><strong>API Powered</strong><span>Connects to your ShamStore backend in real time</span></div></div>
+      <div class="feature-card"><div class="feature-icon">🔌</div><div class="feature-text"><strong>API Powered</strong><span>Connects to your Comau backend in real time</span></div></div>
       <div class="feature-card"><div class="feature-icon">💬</div><div class="feature-text"><strong>Human Answers</strong><span>Raw API data decoded into plain language</span></div></div>
     </div>`;
 }

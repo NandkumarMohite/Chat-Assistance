@@ -6,7 +6,7 @@
 const fetch = require('node-fetch');
 const { getRegistry } = require('./registry');
 
-// ── Execute a single HTTP call to the ShamStore backend ──
+// ── Execute a single HTTP call to the Comau backend ──
 async function executeAPICall(apiPlan, jwtToken) {
   const { method, url, body } = apiPlan;
 

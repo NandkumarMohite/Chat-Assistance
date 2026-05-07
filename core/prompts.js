@@ -42,7 +42,7 @@ Do NOT include any other text, markdown, or explanation outside the JSON.`;
 
 // ── Interpret API results as a human-readable answer ─
 function buildInterpretPrompt(userMessage, apiResults) {
-  return `You are a friendly and insightful assistant for the ShamStore application.
+  return `You are a friendly and insightful assistant for the Comau application.
 
 The user asked: "${userMessage}"
 
@@ -67,7 +67,7 @@ function buildGeneralPrompt(userMessage, conversationHistory) {
     ? `Conversation context:\n${JSON.stringify(conversationHistory.slice(-4))}\n\n`
     : '';
 
-  return `You are a helpful AI assistant for the ShamStore application. Answer the user's question in a friendly, concise, and informative way.
+  return `You are a helpful AI assistant for the Comau application. Answer the user's question in a friendly, concise, and informative way.
 
 ${historyContext}User asked: "${userMessage}"
 
