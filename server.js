@@ -13,7 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // CONFIG
 // ─────────────────────────────────────────────
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL    = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
 
 // ─────────────────────────────────────────────
 // LOAD API REGISTRY (developer-editable file)
@@ -65,10 +65,85 @@ function buildAPIDescription() {
     desc += `\n`;
   }
 
+  // Include dependency chain descriptions so the LLM knows they exist
+  if (API_REGISTRY.dependencyChains && API_REGISTRY.dependencyChains.length > 0) {
+    desc += `\n── DEPENDENCY CHAINS (multi-step workflows) ──\n`;
+    desc += `Use these when the user identifies an entity by a non-ID field (e.g. phone, email, name).\n\n`;
+    for (const chain of API_REGISTRY.dependencyChains) {
+      desc += `  Chain: ${chain.id}\n`;
+      desc += `  Use when: ${chain.triggerCondition}\n`;
+      desc += `  Steps: ${chain.steps.map((s, i) => `${i + 1}) ${s.apiId}${s.filterBy ? ` (filter by ${s.filterBy})` : ''}`).join(' → ')}\n\n`;
+    }
+  }
+
   return desc;
 }
 
 const API_DESCRIPTION = buildAPIDescription();
+
+// ─────────────────────────────────────────────
+// HELPER: Resolve a dependency chain
+// ─────────────────────────────────────────────
+async function executeDependencyChain(chain, userMessage, jwtToken, send) {
+  const context = {}; // stores extracted values like resolvedUserId
+  const allResults = [];
+
+  for (let i = 0; i < chain.steps.length; i++) {
+    const step = chain.steps[i];
+    const apiDef = API_REGISTRY.apis.find(a => a.id === step.apiId);
+    if (!apiDef) throw new Error(`Chain step references unknown API: ${step.apiId}`);
+
+    // Resolve path params — replace $varName references with context values
+    let resolvedPathParams = {};
+    if (step.pathParams) {
+      for (const [key, val] of Object.entries(step.pathParams)) {
+        resolvedPathParams[key] = typeof val === 'string' && val.startsWith('$')
+          ? context[val.slice(1)]
+          : val;
+      }
+    }
+
+    // Build URL
+    let urlPath = apiDef.path;
+    for (const [key, val] of Object.entries(resolvedPathParams)) {
+      urlPath = urlPath.replace(`{${key}}`, encodeURIComponent(val));
+    }
+    const fullUrl = `${API_REGISTRY.baseUrl}${urlPath}`;
+
+    send('api_call', { method: apiDef.method, url: fullUrl, body: null, name: apiDef.name });
+    send('status', { step: `chain_${i}`, message: `🔗 Step ${i + 1}/${chain.steps.length}: Calling ${apiDef.name}...` });
+
+    const result = await executeAPICall({ method: apiDef.method, url: fullUrl, body: null }, jwtToken);
+    const resultArray = Array.isArray(result) ? result : [result];
+
+    // If this step has a filter + extract, find the matching record and save the field
+    if (step.filterBy && step.extractField && step.saveAs) {
+      // Extract the filter value from user message (fuzzy match any token)
+      const userTokens = userMessage.toLowerCase().split(/\s+/);
+      const matched = resultArray.find(record => {
+        const fieldVal = String(record[step.filterBy] || '').toLowerCase();
+        return userTokens.some(token => token.length > 2 && fieldVal.includes(token));
+      });
+
+      if (!matched) {
+        throw new Error(`Could not find a record where ${step.filterBy} matches the value in your message.`);
+      }
+
+      context[step.saveAs] = matched[step.extractField];
+      console.log(`[CHAIN] Resolved ${step.saveAs} = ${context[step.saveAs]} (matched ${step.filterBy}: ${matched[step.filterBy]})`);
+
+      // Send intermediate filtered result as data
+      send('data', { rows: [matched], count: 1, apiName: `${apiDef.name} (matched ${step.filterBy})` });
+    } else {
+      // Regular step — just show data
+      send('data', { rows: resultArray, count: resultArray.length, apiName: apiDef.name });
+    }
+
+    allResults.push({ apiId: step.apiId, name: apiDef.name, data: result });
+  }
+
+  return allResults;
+}
 
 // ─────────────────────────────────────────────
 // HELPER: Call Ollama (non-streaming)
@@ -79,7 +154,7 @@ async function callOllama(systemPrompt, userMessage, enableThink = false) {
     stream: false,
     messages: [
       { role: 'system', content: systemPrompt },
-      { role: 'user',   content: userMessage  }
+      { role: 'user', content: userMessage }
     ]
   };
 
@@ -102,7 +177,7 @@ async function callOllama(systemPrompt, userMessage, enableThink = false) {
   const data = await response.json();
   return {
     thinking: data.message?.thinking || '',
-    content:  data.message?.content  || ''
+    content: data.message?.content || ''
   };
 }
 
@@ -149,19 +224,19 @@ function extractJSON(text) {
   // Try ```json ... ``` block first
   const jsonBlockMatch = text.match(/```json\s*([\s\S]*?)```/i);
   if (jsonBlockMatch) {
-    try { return JSON.parse(jsonBlockMatch[1].trim()); } catch {}
+    try { return JSON.parse(jsonBlockMatch[1].trim()); } catch { }
   }
 
   // Try ``` ... ``` block
   const codeBlockMatch = text.match(/```\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    try { return JSON.parse(codeBlockMatch[1].trim()); } catch {}
+    try { return JSON.parse(codeBlockMatch[1].trim()); } catch { }
   }
 
   // Try to find JSON object directly
   const jsonObjMatch = text.match(/\{[\s\S]*\}/);
   if (jsonObjMatch) {
-    try { return JSON.parse(jsonObjMatch[0].trim()); } catch {}
+    try { return JSON.parse(jsonObjMatch[0].trim()); } catch { }
   }
 
   return null;
@@ -193,6 +268,10 @@ app.post('/api/chat', async (req, res) => {
     // ── STEP 1: Classify intent & pick API ──────
     send('status', { step: 'classify', message: '🧠 Understanding your question...' });
 
+    const chainDescriptions = (API_REGISTRY.dependencyChains || []).map(c =>
+      `  - ${c.id}: ${c.triggerCondition}`
+    ).join('\n');
+
     const classifyPrompt = `You are an intelligent API routing assistant. Determine if the user's question requires calling an API or can be answered from general knowledge.
 
 ${API_DESCRIPTION}
@@ -201,18 +280,25 @@ Respond with ONLY a JSON object (no markdown, no explanation):
 {
   "requiresAPI": true|false,
   "reason": "brief explanation",
+  "chainId": "dependency chain id to use, or null",
   "apiId": "the api id from the registry to call, or null",
   "pathParams": { "paramName": "value" },
   "requestBody": { ... } or null,
+  "clientFilter": { "field": "fieldName", "value": "filterValue" } or null,
   "multipleAPIs": false,
   "apiCalls": []
 }
 
 RULES:
 - If the question needs data from the backend, set requiresAPI to true and pick the correct API.
+- If the user identifies an entity by phone, email, or name (not by ID), and a DEPENDENCY CHAIN exists for it, set chainId to that chain's id instead of apiId.
+- Available dependency chains:\n${chainDescriptions}
 - Fill in pathParams if the API path has {placeholders} — extract values from the user message.
 - Fill in requestBody for POST/PUT methods with the data the user provided.
-- If you need to call multiple APIs (e.g. first get users then get purchases for a user), set multipleAPIs to true and list them in apiCalls array with the same structure: [{apiId, pathParams, requestBody}, ...]
+- CLIENT-SIDE FILTER FALLBACK: If the user wants to filter results by a field (e.g. role, category, status, name) but no API directly supports that filter as a parameter, call the closest "get all" API (e.g. get_all_users, get_all_products) and set clientFilter with the field name and filter value. The server will filter the results for you.
+  Example: user asks "show me all users with role OWNER" → apiId: get_all_users, clientFilter: { field: "role", value: "OWNER" }
+  Example: user asks "show products with stock more than 0" → apiId: get_all_products, clientFilter: { field: "stock", value: "0", operator: "gt" }
+- If you need to call multiple APIs, set multipleAPIs to true and list them in apiCalls array.
 - If the user's question is general knowledge (e.g. "what is Java?"), set requiresAPI to false.
 - apiId must exactly match one of the API ids listed above.
 
@@ -239,12 +325,33 @@ Do NOT include any other text, markdown, or explanation outside the JSON.`;
     let thinkingLog = '';
 
     if (requiresAPI && apiPlan) {
-      // ── STEP 2: Plan API calls ──────────────────
+      // ── STEP 2: Check for dependency chain first ─
       send('status', { step: 'plan_api', message: '⚙️ Planning API calls...' });
 
-      const callsToMake = apiPlan.multipleAPIs && apiPlan.apiCalls?.length
+      if (apiPlan.chainId) {
+        const chain = (API_REGISTRY.dependencyChains || []).find(c => c.id === apiPlan.chainId);
+        if (chain) {
+          send('status', { step: 'chain_start', message: `🔗 Running dependency chain: ${chain.id}...` });
+          try {
+            const chainResults = await executeDependencyChain(chain, message, jwtToken, send);
+            apiResults = chainResults;
+            apiCallsMade = chainResults;
+          } catch (chainErr) {
+            send('error_partial', { message: `Chain error: ${chainErr.message}` });
+            apiResults.push({ error: chainErr.message });
+          }
+          // Skip normal API execution — chain handled it
+          goto_interpret: {
+            // nothing — fall through to interpret step
+          }
+        }
+      }
+
+      const callsToMake = !apiPlan.chainId && apiPlan.multipleAPIs && apiPlan.apiCalls?.length
         ? apiPlan.apiCalls
-        : [{ apiId: apiPlan.apiId, pathParams: apiPlan.pathParams, requestBody: apiPlan.requestBody }];
+        : !apiPlan.chainId
+          ? [{ apiId: apiPlan.apiId, pathParams: apiPlan.pathParams, requestBody: apiPlan.requestBody }]
+          : [];
 
       for (const call of callsToMake) {
         const apiDef = API_REGISTRY.apis.find(a => a.id === call.apiId);
@@ -283,13 +390,41 @@ Do NOT include any other text, markdown, or explanation outside the JSON.`;
 
         try {
           const result = await executeAPICall(apiCallInfo, jwtToken);
-          
+
           if (result && result.token) {
             send('auth_token', { token: result.token });
           }
 
-          const resultArray = Array.isArray(result) ? result : [result];
-          apiResults.push({ apiId: call.apiId, name: apiDef.name, data: result });
+          let resultArray = Array.isArray(result) ? result : [result];
+
+          // ── CLIENT-SIDE FILTER FALLBACK ──────────────
+          // If the LLM requested a clientFilter, apply it now
+          if (call.clientFilter || apiPlan.clientFilter) {
+            const cf = call.clientFilter || apiPlan.clientFilter;
+            const field = cf.field;
+            const filterVal = String(cf.value || '').toLowerCase();
+            const operator = cf.operator || 'eq'; // eq, contains, gt, lt, gte, lte
+
+            const before = resultArray.length;
+            resultArray = resultArray.filter(record => {
+              const recVal = record[field];
+              if (recVal === undefined || recVal === null) return false;
+              const recStr = String(recVal).toLowerCase();
+              switch (operator) {
+                case 'contains': return recStr.includes(filterVal);
+                case 'gt': return parseFloat(recVal) > parseFloat(cf.value);
+                case 'lt': return parseFloat(recVal) < parseFloat(cf.value);
+                case 'gte': return parseFloat(recVal) >= parseFloat(cf.value);
+                case 'lte': return parseFloat(recVal) <= parseFloat(cf.value);
+                default: return recStr === filterVal; // eq
+              }
+            });
+
+            console.log(`[CLIENT FILTER] ${field} ${operator} "${cf.value}": ${before} → ${resultArray.length} records`);
+            send('status', { step: 'filter', message: `🔎 Filtered by ${field}="${cf.value}": ${resultArray.length} match(es)` });
+          }
+
+          apiResults.push({ apiId: call.apiId, name: apiDef.name, data: resultArray });
           apiCallsMade.push(apiCallInfo);
 
           send('data', {
@@ -424,13 +559,13 @@ app.get('/api/health', async (req, res) => {
     const data = await response.json();
     ollamaStatus = 'connected';
     availableModels = (data.models || []).map(m => m.name);
-  } catch {}
+  } catch { }
 
   let backendStatus = 'disconnected';
   try {
     const response = await fetch(`${API_REGISTRY.baseUrl}/api/users`, { method: 'GET', timeout: 3000 });
     if (response.ok) backendStatus = 'connected';
-  } catch {}
+  } catch { }
 
   res.json({
     status: 'ok',

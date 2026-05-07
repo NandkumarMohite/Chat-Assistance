@@ -2,11 +2,78 @@
   "baseUrl": "http://localhost:8080",
   "serviceName": "ShamStore",
   "description": "ShamStore e-commerce backend API — manages users, products, categories, purchases, and more.",
+
+  "dependencyChains": [
+    {
+      "id": "purchases_by_user_phone",
+      "description": "Get purchase history for a user identified by phone number. First fetches all users, filters by phone, extracts userId, then fetches purchases for that user.",
+      "triggerKeywords": ["purchase", "order", "bought", "history"],
+      "triggerCondition": "user identifies a person by phone number (not by ID)",
+      "steps": [
+        {
+          "apiId": "get_all_users",
+          "filterBy": "phone",
+          "filterValueFrom": "userInput",
+          "extractField": "id",
+          "saveAs": "resolvedUserId"
+        },
+        {
+          "apiId": "get_purchases_by_user",
+          "pathParams": {
+            "userId": "$resolvedUserId"
+          }
+        }
+      ]
+    },
+    {
+      "id": "purchases_by_user_email",
+      "description": "Get purchase history for a user identified by email. First fetches all users, filters by email, extracts userId, then fetches purchases for that user.",
+      "triggerKeywords": ["purchase", "order", "bought", "history"],
+      "triggerCondition": "user identifies a person by email address (not by ID)",
+      "steps": [
+        {
+          "apiId": "get_all_users",
+          "filterBy": "email",
+          "filterValueFrom": "userInput",
+          "extractField": "id",
+          "saveAs": "resolvedUserId"
+        },
+        {
+          "apiId": "get_purchases_by_user",
+          "pathParams": {
+            "userId": "$resolvedUserId"
+          }
+        }
+      ]
+    },
+    {
+      "id": "purchases_by_user_name",
+      "description": "Get purchase history for a user identified by name. First fetches all users, filters by name, extracts userId, then fetches purchases for that user.",
+      "triggerKeywords": ["purchase", "order", "bought", "history"],
+      "triggerCondition": "user identifies a person by their name (not by ID)",
+      "steps": [
+        {
+          "apiId": "get_all_users",
+          "filterBy": "name",
+          "filterValueFrom": "userInput",
+          "extractField": "id",
+          "saveAs": "resolvedUserId"
+        },
+        {
+          "apiId": "get_purchases_by_user",
+          "pathParams": {
+            "userId": "$resolvedUserId"
+          }
+        }
+      ]
+    }
+  ],
+
   "apis": [
     {
       "id": "get_all_users",
       "name": "Get All Users",
-      "description": "Retrieves a list of all registered users in the system. Use when the user asks about all customers, all users, user list, user count, etc.",
+      "description": "Retrieves a list of all registered users in the system. Use when the user asks about all customers, or to find a specific user by email, name, or phone number (you will fetch all and filter the results).",
       "method": "GET",
       "path": "/api/users",
       "parameters": [],
@@ -26,13 +93,16 @@
         "how many users",
         "user count",
         "registered users",
-        "members"
+        "members",
+        "find user by email",
+        "search user",
+        "user email"
       ]
     },
     {
       "id": "get_user_by_id",
       "name": "Get User By ID",
-      "description": "Retrieves details of a single user by their ID. Use when the user asks about a specific user by ID number.",
+      "description": "Retrieves details of a single user by their numeric ID ONLY. Do NOT use this to find a user by email, name, or phone. Use get_all_users if searching by email.",
       "method": "GET",
       "path": "/api/users/{id}",
       "parameters": [
@@ -54,8 +124,7 @@
         "user details",
         "specific user",
         "user by id",
-        "find user",
-        "get user"
+        "get user by id"
       ]
     },
     {
