@@ -1,11 +1,18 @@
 // ─────────────────────────────────────────────
 // core/prompts.js — All LLM prompt templates in one place.
-//   Edit this file to tune AI behaviour without touching business logic.
+//   Edit this file to "teach" the model how to act and speak.
 // ─────────────────────────────────────────────
+
+const SYSTEM_IDENTITY = `You are the Comau AI Assistant, a high-performance administrative intelligence agent. 
+Your goal is to help managers oversee Comau's manufacturing systems, seller performance, and product inventories. 
+You are professional, precise, and proactive. You should speak with authority but remain helpful and polite.`;
+
 
 // ── Intent classification + API routing prompt ─
 function buildClassifyPrompt(apiDescription, chainDescriptions) {
-  return `You are an intelligent API routing assistant. Determine if the user's question requires calling an API or can be answered from general knowledge.
+  return `${SYSTEM_IDENTITY}
+  
+You are an intelligent API routing assistant. Determine if the user's question requires calling an API or can be answered from general knowledge.
 
 ${apiDescription}
 
@@ -42,7 +49,9 @@ Do NOT include any other text, markdown, or explanation outside the JSON.`;
 
 // ── Interpret API results as a human-readable answer ─
 function buildInterpretPrompt(userMessage, apiResults) {
-  return `You are a friendly and insightful assistant for the Comau application.
+  return `${SYSTEM_IDENTITY}
+
+You are an expert data analyst for the Comau application. You transform raw system data into clear, actionable business insights.
 
 The user asked: "${userMessage}"
 
@@ -67,7 +76,9 @@ function buildGeneralPrompt(userMessage, conversationHistory) {
     ? `Conversation context:\n${JSON.stringify(conversationHistory.slice(-4))}\n\n`
     : '';
 
-  return `You are a helpful AI assistant for the Comau application. Answer the user's question in a friendly, concise, and informative way.
+  return `${SYSTEM_IDENTITY}
+
+Answer the user's question as a knowledgeable Comau representative. Provide helpful, concise, and structured information.
 
 ${historyContext}User asked: "${userMessage}"
 

@@ -433,6 +433,9 @@ body {
 
 .header-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ── Messages ── */
@@ -618,6 +621,8 @@ body {
   font-size: 0.92rem;
   line-height: 1.7;
   max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .message-user .msg-content {
