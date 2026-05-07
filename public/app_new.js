@@ -38,6 +38,10 @@ if (currentTheme === 'light') document.documentElement.classList.add('light-them
 
 // ── Init ──
 (async function init() {
+  // Set dynamic welcome
+  const welcomeTitle = document.getElementById('welcomeTitle');
+  if (welcomeTitle) welcomeTitle.textContent = `Good ${getTimeOfDay()}! 👋`;
+
   await checkHealth();
   await loadModels();
   setupEventListeners();
@@ -376,12 +380,8 @@ function clearChat() {
 function welcomeScreenHTML() {
   return `
     <div class="welcome-glow"></div>
-    <div class="welcome-icon">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-        <path d="M2 17l10 5 10-5"/>
-        <path d="M2 12l10 5 10-5"/>
-      </svg>
+    <div class="welcome-icon" style="background: transparent;">
+      <img src="logo.jpg" alt="Comau Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" />
     </div>
     <h2 class="welcome-title">Good ${getTimeOfDay()}! 👋</h2>
     <p class="welcome-desc">I'm your Comau AI Assistant powered by Ollama. Ask me questions in plain English — I'll call the right API and translate results into clear, human-readable answers.</p>
