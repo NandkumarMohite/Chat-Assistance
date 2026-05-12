@@ -1,5 +1,4 @@
 {
-  "baseUrl": "http://localhost:8080",
   "serviceName": "Comau",
   "description": "Comau backend API — manages users, products, categories, purchases, and more.",
   "dependencyChains": [

@@ -1,0 +1,17 @@
+server:
+  port: 3000
+  node_env: production
+
+ollama:
+  base_url: "http://production-ollama:11434"
+  model: "qwen2.5-coder:7b"
+
+eureka:
+  enabled: true
+  host: "eureka-server"
+  port: 8761
+  service_url: "/eureka/v2/apps/"
+  backend_name: "COMAU-BACKEND"
+
+logging:
+  level: info

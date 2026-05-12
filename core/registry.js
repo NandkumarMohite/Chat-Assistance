@@ -4,17 +4,21 @@
 
 const fs   = require('fs');
 const path = require('path');
+const { BACKEND_BASE_URL, EUREKA_BACKEND_NAME } = require('./config');
+const { getServiceUrl } = require('./eureka-client');
 
 const REGISTRY_PATH = path.join(__dirname, '..', 'api-registry.json');
 
 let API_REGISTRY = null;
 
 // ── Load registry from disk ──────────────────
-// TODO: If you want to add a New API, you DO NOT need to write any JavaScript!
-// Just add the new API object to the "apis" array inside `api-registry.json`.
 function loadRegistry() {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8');
   API_REGISTRY = JSON.parse(raw);
+  
+  // Override baseUrl from central config
+  API_REGISTRY.baseUrl = BACKEND_BASE_URL;
+  
   console.log(`✅ Loaded API registry: ${API_REGISTRY.apis.length} endpoints from ${API_REGISTRY.serviceName}`);
   return API_REGISTRY;
 }
@@ -23,12 +27,24 @@ function loadRegistry() {
 function reloadRegistry() {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8');
   API_REGISTRY = JSON.parse(raw);
+  
+  // Override baseUrl from central config
+  API_REGISTRY.baseUrl = BACKEND_BASE_URL;
+  
   console.log(`🔄 API registry reloaded: ${API_REGISTRY.apis.length} endpoints`);
   return API_REGISTRY;
 }
 
 // ── Get currently loaded registry ────────────
 function getRegistry() {
+  if (!API_REGISTRY) return null;
+  
+  // Try to update baseUrl from Eureka if enabled
+  const discoveredUrl = getServiceUrl(EUREKA_BACKEND_NAME);
+  if (discoveredUrl) {
+    API_REGISTRY.baseUrl = discoveredUrl;
+  }
+  
   return API_REGISTRY;
 }
 

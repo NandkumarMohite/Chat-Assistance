@@ -6,13 +6,19 @@
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
+const helmet  = require('helmet');
+const compression = require('compression');
+const morgan  = require('morgan');
+const rateLimit = require('express-rate-limit');
 
 const { PORT }         = require('./core/config');
 const { loadRegistry } = require('./core/registry');
+const { startEureka }  = require('./core/eureka-client');
+
+// ── Initialize Eureka ────────────────────────
+startEureka();
 
 // ── Load API registry on startup ─────────────
-// TODO: If you want to add a new API (like get_all_sellers), YOU DO NOT NEED TO EDIT ANY JS FILES!
-// Just add your new API object into `api-registry.json`.
 try {
   loadRegistry();
 } catch (err) {
@@ -22,6 +28,20 @@ try {
 
 // ── Express app setup ────────────────────────
 const app = express();
+
+// Production Middlewares
+app.use(helmet()); // Security headers
+app.use(compression()); // Gzip compression
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev')); // Logging
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -36,7 +56,7 @@ app.use('/api/registry', require('./routes/registry'));
 const { OLLAMA_BASE_URL, OLLAMA_MODEL } = require('./core/config');
 const { getRegistry } = require('./core/registry');
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   const registry = getRegistry();
   console.log(`\n🚀 Ollama Chat AI Server running at http://localhost:${PORT}`);
   console.log(`📡 Connected to Ollama at: ${OLLAMA_BASE_URL}`);
@@ -46,3 +66,21 @@ app.listen(PORT, () => {
   console.log(`\n💡 To change model: set OLLAMA_MODEL env variable`);
   console.log(`   Example: OLLAMA_MODEL=qwen3 node server.js\n`);
 });
+
+// ── Graceful Shutdown ────────────────────────
+const gracefulShutdown = () => {
+  console.log('\n🛑 Signal received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Closed out remaining connections.');
+    process.exit(0);
+  });
+
+  // If connections don't close in 10s, force shutdown
+  setTimeout(() => {
+    console.error('⚠️ Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
