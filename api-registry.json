@@ -85,652 +85,181 @@
   "_TODO_HOW_TO_ADD_NEW_API": "To add a New API to the AI Assistant, you ONLY need to add a new object inside the 'apis' array below! NO JavaScript code changes are needed in server.js or anywhere else. The AI will automatically read the new API, understand its description, and start using it.",
   "apis": [
     {
-      "id": "get_all_sellers",
-      "name": "Get All Sellers",
-      "description": "Get All Sellers in the shop.",
+      "id": "get_device_status_history",
+      "name": "Get Device Status History",
+      "description": "Retrieves the historical status changes for a specific device from MongoDB. Supports filtering by edge, collector, device, time range, and optional status value.",
       "method": "GET",
-      "path": "/api/sellers",
-      "parameters": [],
-      "keywords": [
-        "get all Salers",
-        "all workers in shop",
-        "shop workers",
-        "salers mans"
-      ]
-    },
-    {
-      "id": "get_all_users",
-      "name": "Get All Users",
-      "description": "Retrieves a list of all registered users in the system. Use when the user asks about all customers, or to find a specific user by email, name, or phone number (you will fetch all and filter the results).",
-      "method": "GET",
-      "path": "/api/users",
-      "parameters": [],
+      "path": "/edgemonitor/device-status-history",
+      "parameters": [
+        {
+          "name": "edgeId",
+          "in": "query",
+          "type": "String",
+          "required": false,
+          "description": "The unique ID of the edge device"
+        },
+        {
+          "name": "collectorId",
+          "in": "query",
+          "type": "String",
+          "required": false,
+          "description": "The unique ID of the collector"
+        },
+        {
+          "name": "deviceId",
+          "in": "query",
+          "type": "String",
+          "required": false,
+          "description": "The unique ID of the monitored device"
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "type": "String",
+          "required": false,
+          "description": "Optional status filter (e.g. running, down, connected, disconnected, )"
+        },
+        {
+          "name": "from",
+          "in": "query",
+          "type": "String",
+          "required": true,
+          "description": "Start timestamp for filtering history records"
+        },
+        {
+          "name": "to",
+          "in": "query",
+          "type": "String",
+          "required": true,
+          "description": "End timestamp for filtering history records"
+        }
+      ],
       "responseExample": [
         {
-          "id": 1,
-          "name": "John Doe",
-          "email": "john@example.com",
-          "phone": "9876543210"
+          "deviceId": "device-101",
+          "deviceType": "sensor",
+          "collectorId": "collector-11",
+          "edgeId": "edge-1",
+          "lastUpdatedTimestamp": "2026-05-12T03:52:18.760Z",
+          "status": [
+            {
+              "status": "running",
+              "statusStartedAt": "2026-05-12T03:52:18.760Z"
+            }
+          ]
         }
       ],
       "keywords": [
-        "users",
-        "customers",
-        "all users",
-        "list users",
-        "how many users",
-        "user count",
-        "registered users",
-        "members",
-        "find user by email",
-        "search user",
-        "user email"
+        "device history",
+        "status history",
+        "historical statuses",
+        "device monitoring history",
+        "device status logs",
+        "status timeline",
+        "get all statuses for device",
+        "It is only for specific device, not for all devices"
       ]
     },
     {
-      "id": "get_user_by_id",
-      "name": "Get User By ID",
-      "description": "Retrieves details of a single user by their numeric ID ONLY. Do NOT use this to find a user by email, name, or phone. Use get_all_users if searching by email.",
+      "id": "get_edges_last_statuses",
+      "name": "Get Edges Last Statuses",
+      "description": "Retrieves the list of edge devices along with associated collectors and monitored devices including their latest statuses.",
       "method": "GET",
-      "path": "/api/users/{id}",
+      "path": "/edgemonitor/edges-last-statuses",
+      "parameters": [],
+      "responseExample": {
+        "apiRefreshRate": 30,
+        "statuses": [
+          {
+            "edge": {
+              "id": "edge-1",
+              "status": "running",
+              "statusTs": "2026-05-12T03:52:18.774Z"
+            },
+            "collectors": [
+              {
+                "collectorId": "collector-11",
+                "collectorName": "Main Collector",
+                "status": "running",
+                "statusStartedAt": "2026-05-12T03:52:18.774Z",
+                "deviceLastStatuses": [
+                  {
+                    "deviceId": "device-101",
+                    "deviceType": "sensor",
+                    "status": "running",
+                    "statusStartedAt": "2026-05-12T03:52:18.774Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "keywords": [
+        "latest statuses",
+        "edge monitoring",
+        "collector statuses",
+        "device statuses",
+        "monitoring dashboard",
+        "last received status"
+      ]
+    },
+    {
+      "id": "get_last_statuses",
+      "name": "Get Last N Statuses",
+      "description": "Retrieves the last N status changes for an edge, collector, or device depending on the provided parameters.",
+      "method": "GET",
+      "path": "/edgemonitor/last-statuses",
       "parameters": [
         {
-          "name": "id",
-          "in": "path",
-          "type": "Long",
+          "name": "edgeId",
+          "in": "query",
+          "type": "String",
           "required": true,
-          "description": "The user's unique ID"
+          "description": "The unique ID of the edge device"
+        },
+        {
+          "name": "collectorId",
+          "in": "query",
+          "type": "String",
+          "required": false,
+          "description": "The unique ID of the collector"
+        },
+        {
+          "name": "deviceId",
+          "in": "query",
+          "type": "String",
+          "required": false,
+          "description": "The unique ID of the monitored device"
+        },
+        {
+          "name": "count",
+          "in": "query",
+          "type": "Integer",
+          "required": false,
+          "description": "Number of recent statuses to return (default: 5, min: 1, max: 150)"
         }
       ],
       "responseExample": {
-        "id": 1,
-        "name": "John Doe",
-        "email": "john@example.com",
-        "phone": "9876543210"
-      },
-      "keywords": [
-        "user details",
-        "specific user",
-        "user by id",
-        "get user by id"
-      ]
-    },
-    {
-      "id": "update_user",
-      "name": "Update User",
-      "description": "Updates an existing user's information by their ID. Use when the user wants to change/update/modify a user's details like name, email, or phone.",
-      "method": "PUT",
-      "path": "/api/users/{id}",
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "The user's unique ID to update"
-        }
-      ],
-      "requestBody": {
-        "type": "User",
-        "fields": [
+        "deviceId": "device-101",
+        "deviceType": "sensor",
+        "collectorId": "collector-11",
+        "edgeId": "edge-1",
+        "lastUpdatedTimestamp": "2026-05-12T03:52:18.786Z",
+        "status": [
           {
-            "name": "name",
-            "type": "String",
-            "description": "User's full name"
-          },
-          {
-            "name": "email",
-            "type": "String",
-            "description": "User's email address"
-          },
-          {
-            "name": "phone",
-            "type": "String",
-            "description": "User's phone number"
+            "status": "running",
+            "statusStartedAt": "2026-05-12T03:52:18.786Z"
           }
         ]
       },
       "keywords": [
-        "update user",
-        "change user",
-        "edit user",
-        "modify user",
-        "rename user"
-      ]
-    },
-    {
-      "id": "delete_user",
-      "name": "Delete User",
-      "description": "Deletes a user by their ID. Use when the user asks to remove/delete a specific user. DANGEROUS: confirm before executing.",
-      "method": "DELETE",
-      "path": "/api/users/{id}",
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "The user's unique ID to delete"
-        }
-      ],
-      "keywords": [
-        "delete user",
-        "remove user",
-        "drop user"
-      ],
-      "requiresConfirmation": true
-    },
-    {
-      "id": "add_purchase",
-      "name": "Add Purchase",
-      "description": "Records a new purchase for a user. Use when someone asks to add a purchase record, log a sale, or record a transaction.",
-      "method": "POST",
-      "path": "/api/purchase/add",
-      "parameters": [],
-      "requestBody": {
-        "type": "PurchaseRequest",
-        "fields": [
-          {
-            "name": "userId",
-            "type": "Long",
-            "required": true,
-            "description": "The user's ID who made the purchase"
-          },
-          {
-            "name": "productId",
-            "type": "Long",
-            "required": true,
-            "description": "The product ID that was purchased"
-          },
-          {
-            "name": "quantity",
-            "type": "Integer",
-            "required": true,
-            "description": "How many units were purchased"
-          }
-        ]
-      },
-      "keywords": [
-        "add purchase",
-        "record purchase",
-        "log sale",
-        "new purchase",
-        "buy",
-        "bought",
-        "purchased"
-      ]
-    },
-    {
-      "id": "add_bulk_purchases",
-      "name": "Add Bulk Purchases",
-      "description": "Records multiple purchases at once for a user. Use when adding several items purchased together or batch recording purchases.",
-      "method": "POST",
-      "path": "/api/purchase/bulk",
-      "parameters": [],
-      "requestBody": {
-        "type": "BulkPurchaseRequest",
-        "fields": [
-          {
-            "name": "userId",
-            "type": "Long",
-            "required": true,
-            "description": "The user's ID"
-          },
-          {
-            "name": "items",
-            "type": "Array<PurchaseItem>",
-            "required": true,
-            "description": "List of items, each with productId and quantity"
-          }
-        ]
-      },
-      "keywords": [
-        "bulk purchase",
-        "multiple purchases",
-        "batch purchase",
-        "many items"
-      ]
-    },
-    {
-      "id": "get_purchases_by_user",
-      "name": "Get Purchases By User",
-      "description": "Retrieves all purchase history for a specific user by their user ID. Use when asking about a user's orders, purchase history, what they bought, etc.",
-      "method": "GET",
-      "path": "/api/purchase/{userId}",
-      "parameters": [
-        {
-          "name": "userId",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "The user's ID to get purchase history for"
-        }
-      ],
-      "keywords": [
-        "user purchases",
-        "purchase history",
-        "user orders",
-        "what did user buy",
-        "order history",
-        "bought"
-      ]
-    },
-    {
-      "id": "get_all_purchases",
-      "name": "Get All Purchases",
-      "description": "Retrieves all purchase records from all users. Use when asking about all purchases, total sales, complete purchase history, overall transactions.",
-      "method": "GET",
-      "path": "/api/purchase",
-      "parameters": [],
-      "keywords": [
-        "all purchases",
-        "all orders",
-        "total purchases",
-        "all sales",
-        "purchase records",
-        "all transactions",
-        "sales history"
-      ]
-    },
-    {
-      "id": "get_all_products",
-      "name": "Get All Products",
-      "description": "Retrieves a list of all products in the store. Use when the user asks to see all products, inventory, catalog, etc.",
-      "method": "GET",
-      "path": "/api/products",
-      "parameters": [],
-      "keywords": [
-        "all products",
-        "inventory",
-        "catalog",
-        "show products",
-        "list products"
-      ]
-    },
-    {
-      "id": "get_paged_products",
-      "name": "Get Paged Products",
-      "description": "Retrieves products with pagination, sorting, and filtering. Use when user wants a specific page of products, or filtered by category, stock status, or search term.",
-      "method": "GET",
-      "path": "/api/products/paged?page={page}&size={size}&search={search}&categoryId={categoryId}&stockStatus={stockStatus}&sort={sort}",
-      "parameters": [
-        {
-          "name": "page",
-          "in": "query",
-          "type": "Integer",
-          "required": false,
-          "description": "Page number (default 0)"
-        },
-        {
-          "name": "size",
-          "in": "query",
-          "type": "Integer",
-          "required": false,
-          "description": "Page size (default 12)"
-        },
-        {
-          "name": "search",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Search keyword"
-        },
-        {
-          "name": "categoryId",
-          "in": "query",
-          "type": "Long",
-          "required": false,
-          "description": "Filter by category ID"
-        },
-        {
-          "name": "stockStatus",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "e.g., IN_STOCK, OUT_OF_STOCK"
-        },
-        {
-          "name": "sort",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Sort format 'property,direction' e.g. 'price,asc'"
-        }
-      ],
-      "keywords": [
-        "page",
-        "filter products",
-        "sort products",
-        "products page"
-      ]
-    },
-    {
-      "id": "get_product_by_id",
-      "name": "Get Product By ID",
-      "description": "Retrieves details of a single product by its ID. Use when asking about a specific product's details, price, or stock.",
-      "method": "GET",
-      "path": "/api/products/{id}",
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "Product ID"
-        }
-      ],
-      "keywords": [
-        "product details",
-        "product by id",
-        "specific product",
-        "find product"
-      ]
-    },
-    {
-      "id": "get_products_by_category",
-      "name": "Get Products By Category",
-      "description": "Retrieves all products belonging to a specific category. Use when the user asks for items in a certain category.",
-      "method": "GET",
-      "path": "/api/products/category/{categoryId}",
-      "parameters": [
-        {
-          "name": "categoryId",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "Category ID"
-        }
-      ],
-      "keywords": [
-        "products by category",
-        "category items",
-        "items in category"
-      ]
-    },
-    {
-      "id": "search_products",
-      "name": "Search Products",
-      "description": "Searches for products based on a keyword. Use when the user is searching for a product by name or description.",
-      "method": "GET",
-      "path": "/api/products/search?q={keyword}",
-      "parameters": [
-        {
-          "name": "keyword",
-          "in": "query",
-          "type": "String",
-          "required": true,
-          "description": "Search term"
-        }
-      ],
-      "keywords": [
-        "search product",
-        "find product",
-        "looking for"
-      ]
-    },
-    {
-      "id": "create_product",
-      "name": "Create Product",
-      "description": "Creates a new product. Use when the user wants to add a new product to the store.",
-      "method": "POST",
-      "path": "/api/products?name={name}&description={description}&purchasedPrice={purchasedPrice}&sellingPrice={sellingPrice}&categoryId={categoryId}&stock={stock}&discountPercentage={discountPercentage}&promoTag={promoTag}",
-      "parameters": [
-        {
-          "name": "name",
-          "in": "query",
-          "type": "String",
-          "required": true,
-          "description": "Product name"
-        },
-        {
-          "name": "purchasedPrice",
-          "in": "query",
-          "type": "Double",
-          "required": true,
-          "description": "Purchased price"
-        },
-        {
-          "name": "sellingPrice",
-          "in": "query",
-          "type": "Double",
-          "required": true,
-          "description": "Selling price"
-        },
-        {
-          "name": "categoryId",
-          "in": "query",
-          "type": "Long",
-          "required": true,
-          "description": "Category ID"
-        },
-        {
-          "name": "description",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Description"
-        },
-        {
-          "name": "stock",
-          "in": "query",
-          "type": "Integer",
-          "required": false,
-          "description": "Stock count"
-        },
-        {
-          "name": "discountPercentage",
-          "in": "query",
-          "type": "Double",
-          "required": false,
-          "description": "Discount %"
-        },
-        {
-          "name": "promoTag",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Promo tag"
-        }
-      ],
-      "keywords": [
-        "add product",
-        "create product",
-        "new product"
-      ]
-    },
-    {
-      "id": "update_product",
-      "name": "Update Product",
-      "description": "Updates an existing product. Use when the user wants to modify product details.",
-      "method": "PUT",
-      "path": "/api/products/{id}?name={name}&description={description}&purchasedPrice={purchasedPrice}&sellingPrice={sellingPrice}&categoryId={categoryId}&stock={stock}&discountPercentage={discountPercentage}&promoTag={promoTag}",
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "Product ID to update"
-        },
-        {
-          "name": "name",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Product name"
-        },
-        {
-          "name": "purchasedPrice",
-          "in": "query",
-          "type": "Double",
-          "required": false,
-          "description": "Purchased price"
-        },
-        {
-          "name": "sellingPrice",
-          "in": "query",
-          "type": "Double",
-          "required": false,
-          "description": "Selling price"
-        },
-        {
-          "name": "categoryId",
-          "in": "query",
-          "type": "Long",
-          "required": false,
-          "description": "Category ID"
-        },
-        {
-          "name": "description",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Description"
-        },
-        {
-          "name": "stock",
-          "in": "query",
-          "type": "Integer",
-          "required": false,
-          "description": "Stock count"
-        },
-        {
-          "name": "discountPercentage",
-          "in": "query",
-          "type": "Double",
-          "required": false,
-          "description": "Discount %"
-        },
-        {
-          "name": "promoTag",
-          "in": "query",
-          "type": "String",
-          "required": false,
-          "description": "Promo tag"
-        }
-      ],
-      "keywords": [
-        "update product",
-        "edit product",
-        "modify product",
-        "change price",
-        "update stock"
-      ]
-    },
-    {
-      "id": "delete_product",
-      "name": "Delete Product",
-      "description": "Deletes a product by its ID. Use when asking to remove/delete a specific product. DANGEROUS.",
-      "method": "DELETE",
-      "path": "/api/products/{id}",
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "type": "Long",
-          "required": true,
-          "description": "Product ID to delete"
-        }
-      ],
-      "keywords": [
-        "delete product",
-        "remove product"
-      ],
-      "requiresConfirmation": true
-    },
-    {
-      "id": "login",
-      "name": "User Login",
-      "description": "Authenticates a user and returns a JWT token. Use this when the user says 'login' or provides their credentials to sign in.",
-      "method": "POST",
-      "path": "/api/auth/login",
-      "parameters": [],
-      "requestBody": {
-        "type": "LoginRequest",
-        "fields": [
-          {
-            "name": "email",
-            "type": "String",
-            "required": true,
-            "description": "User's email"
-          },
-          {
-            "name": "password",
-            "type": "String",
-            "required": true,
-            "description": "User's password"
-          }
-        ]
-      },
-      "keywords": [
-        "login",
-        "sign in",
-        "authenticate",
-        "log me in"
-      ]
-    },
-    {
-      "id": "register",
-      "name": "User Registration",
-      "description": "Registers a new user and returns a JWT token. Use this when the user asks to sign up or create an account.",
-      "method": "POST",
-      "path": "/api/auth/register",
-      "parameters": [],
-      "requestBody": {
-        "type": "RegisterRequest",
-        "fields": [
-          {
-            "name": "name",
-            "type": "String",
-            "required": true,
-            "description": "User's name"
-          },
-          {
-            "name": "email",
-            "type": "String",
-            "required": true,
-            "description": "User's email"
-          },
-          {
-            "name": "password",
-            "type": "String",
-            "required": true,
-            "description": "User's password"
-          }
-        ]
-      },
-      "keywords": [
-        "register",
-        "sign up",
-        "create account"
-      ]
-    },
-    {
-      "id": "upload_excel",
-      "name": "Upload Excel Data",
-      "description": "Uploads an Excel file to bulk import data into the system. Since the chat interface cannot directly handle file uploads, advise the user to use the dashboard or provide the API URL: POST /api/excel/upload",
-      "method": "POST",
-      "path": "/api/excel/upload",
-      "parameters": [],
-      "keywords": [
-        "upload excel",
-        "import data",
-        "bulk import",
-        "upload data"
-      ]
-    },
-    {
-      "id": "download_excel_template",
-      "name": "Download Excel Template",
-      "description": "Downloads the Excel template file used for bulk uploading data. The chat assistant should provide a direct link to this endpoint: http://localhost:8080/api/excel/template",
-      "method": "GET",
-      "path": "/api/excel/template",
-      "parameters": [],
-      "keywords": [
-        "download template",
-        "excel template",
-        "get template",
-        "sample excel"
+        "last statuses",
+        "recent statuses",
+        "latest device status",
+        "latest collector status",
+        "latest edge status",
+        "monitoring status history"
       ]
     }
   ]
