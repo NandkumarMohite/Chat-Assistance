@@ -9,6 +9,15 @@ const path    = require('path');
 
 const { PORT }         = require('./core/config');
 const { loadRegistry } = require('./core/registry');
+const fs   = require('fs');
+
+// ── Display Banner ───────────────────────────
+try {
+  const banner = fs.readFileSync(path.join(__dirname, 'Banner.txt'), 'utf8');
+  console.log(banner);
+} catch (e) {
+  // Ignore if banner is missing
+}
 
 // ── Load API registry on startup ─────────────
 // TODO: If you want to add a new API (like get_all_sellers), YOU DO NOT NEED TO EDIT ANY JS FILES!

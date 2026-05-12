@@ -1,46 +1,81 @@
 # 🤖 Chat AI Microservice
 
-This project is an AI Chat Assistant powered by **Ollama** and integrated with the **Comau Backend API**. It is designed to run as a microservice in a containerized environment.
+This project is a high-performance AI Chat Assistant powered by **Ollama** and integrated with the **Comau Backend API**. It is architected to run as a microservice in a containerized environment with full CI/CD support.
 
-## 🏗️ Microservice Architecture
+---
 
-The system is composed of three main microservices:
-1.  **Chat AI Service**: This Node.js application (Express).
-2.  **Ollama Service**: The official Ollama container for running local LLMs.
-3.  **Comau Backend**: The core business logic API (external dependency).
+## 🚀 Quick Start (Docker)
 
-## 🚀 Getting Started (Docker Compose)
-
-The easiest way to run the entire stack is using Docker Compose:
+The fastest way to get started locally:
 
 ```bash
 # 1. Start all services
 docker-compose up -d
 
-# 2. Pull the required AI model (one-time setup)
+# 2. Pull the AI model (required once)
 docker exec -it ollama-service ollama pull qwen2.5-coder:3b
 ```
+The application will be available at `http://localhost:3000`.
 
-The Chat AI will be available at `http://localhost:3000`.
+---
+
+## 🏗️ Architecture
+
+- **Chat AI Service**: Node.js (Express) application handling logic and API orchestration.
+- **Ollama Service**: Official container for local LLM inference.
+- **Comau Backend**: Core business logic API (external dependency).
+
+---
 
 ## ⚙️ Configuration
 
-Environment variables can be configured in a `.env` file. See `.env.example` for details.
+We use a **Single Source of Truth** pattern. All configurations are managed via the `.env` file.
 
-| Variable | Description | Default (Local) | Docker Compose Default |
+| Variable | Default (Local) | Docker Compose Value | Description |
 | :--- | :--- | :--- | :--- |
-| `PORT` | Port for the Node server | `3000` | `3000` |
-| `OLLAMA_URL` | URL of the Ollama service | `http://localhost:11434` | `http://ollama-service:11434` |
-| `OLLAMA_MODEL` | Model name to use | `qwen2.5-coder:3b` | `qwen2.5-coder:3b` |
-| `BACKEND_URL` | Base URL for Comau API | `http://localhost:8080/api/v1` | `http://comau-backend:8080/api/v1` |
+| `BACKEND_URL` | `http://localhost:8080/api/v1` | `${BACKEND_URL}` | Base URL for the external Backend API. |
+| `OLLAMA_URL` | `http://localhost:11434` | `http://ollama-service:11434` | Internal Docker address for Ollama. |
+| `OLLAMA_MODEL` | `qwen2.5-coder:3b` | `qwen2.5-coder:3b` | The AI model to load. |
+
+---
+
+## 🏎️ GPU Acceleration (NVIDIA)
+
+This project is pre-configured for NVIDIA GPU support in Docker. 
+**Prerequisites:**
+1. NVIDIA Container Toolkit installed.
+2. WSL2 enabled (if on Windows).
+
+Docker will automatically use your GPU for inference, making the AI significantly faster than on CPU.
+
+---
+
+## ⛓️ CI/CD (Jenkins)
+
+The project includes a `Jenkinsfile` for automated deployment:
+1. **Build**: Pulls Node image and builds the service.
+2. **Push**: Tags and pushes the image to `nandkumarmohite/chat-ai-service`.
+3. **Deploy**: Triggers a pull and restart on your target VM.
+
+**Jenkins Requirements:**
+- Credential ID `registry-pass`: Docker Hub token.
+- Credential ID `backend-api-url`: Production Backend API URL.
+
+---
+
+## 📦 VM Deployment
+
+To deploy on a new VM:
+1. Copy `docker-compose.yml` and `.env` to the server.
+2. Run `docker-compose up -d`.
+3. Run `docker exec -it ollama-service ollama pull qwen2.5-coder:3b`.
+
+---
 
 ## 🛠️ Development
 
-To run locally for development:
-
 ```bash
 npm install
-npm run dev
+npm start
 ```
-
-Ensure you have a local Ollama instance running or point `OLLAMA_URL` to a remote instance.
+Check `CHANGELOG.md` for recent version updates.
