@@ -1,4 +1,8 @@
 // Jenkinsfile — Chat AI Microservice Pipeline
+def proxyHostHttp = "-Dhttp.proxyHost="
+def proxyPortHttp = "-Dhttp.proxyPort="
+def proxyHostHttps = "-Dhttps.proxyHost="
+def proxyPortHttps = "-Dhttps.proxyPort="
 
 pipeline {
     agent any
@@ -9,6 +13,12 @@ pipeline {
     }
 
     environment {
+        PASS_DOCKER_REPO = credentials('registry-pass')
+        PASS_PROXY = credentials('proxy-pass')
+        DOCKER_CONTENT_TRUST_ROOT_PASSPHRASE = credentials('DOCKER_CONTENT_TRUST_ROOT_PASSPHRASE')
+        DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE = credentials('DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE')
+        DCT_KEYS_PATH = credentials('DCT_KEYS_PATH')
+        NOTARY_SERVER = 'https://172.22.176.195:4443'
         // Credentials stored in Jenkins
         DOCKER_HUB_USER = 'nandkumarmohite'
         DOCKER_HUB_PASS = credentials('registry-pass') // Add this ID in Jenkins Credentials
@@ -16,7 +26,7 @@ pipeline {
         // Use the centralized BACKEND_URL from Jenkins environment or credentials
         BACKEND_URL = credentials('backend-api-url') 
     }
-
+  agent any
     parameters {
         string(defaultValue: '18', name: 'NODE_VERSION', description: 'Node.js version for Docker build')
         string(defaultValue: 'latest', name: 'APP_TAG', description: 'Tag for the Docker image')
@@ -24,10 +34,16 @@ pipeline {
         // Proxy settings (matching your example)
         string(defaultValue: '172.22.33.174', name: 'PROXY_HOST')
         string(defaultValue: '3128', name: 'PROXY_PORT')
-        
+        string(defaultValue: '172.22.176.195', name: 'HOST_DOCKER_REPO')
+        string(defaultValue: '3000', name: 'PORT_DOCKER_REPO')
+        string(defaultValue: 'itdgtpconreg01cnr.azurecr.io', name: 'ACR_SERVER')
+        string(defaultValue: 'shrdcomauingridacr01.azurecr.io', name: 'PLATFORM_REGISTRY')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run npm tests?')
         booleanParam(name: 'PUSH_IMAGE', defaultValue: true, description: 'Push image to Docker Hub?')
+        booleanParam(name: 'RUN_QUALYS', defaultValue: true, description: 'Do you want to run Qualys vulnerability scanner?')
         booleanParam(name: 'DEPLOY_SERVICE', defaultValue: false, description: 'Deploy to VM?')
+        string(name: 'COMAUCHATASSISTANT_TAG')
+        string(defaultValue: 'develop', name: 'BRANCH_NAME', description: 'The branch from which take the code')
     }
 
     stages {
@@ -69,39 +85,57 @@ pipeline {
             }
         }
 
-        stage('Push to Registry') {
-            when { expression { params.PUSH_IMAGE == true } }
-            steps {
-                echo "⬆️ Pushing to Docker Hub..."
-                sh """
-                    echo $DOCKER_HUB_PASS | docker login -u $DOCKER_HUB_USER --password-stdin
-                    docker push ${env.DOCKER_HUB_USER}/chat-ai-service:${params.APP_TAG}
-                """
+         stage('Push image on Nexus'){
+                when {
+                     allOf {
+                           expression { params.PUSH_NEXUS == true}
+                           expression { params.COMAUCHATASSISTANT_TAG != ''}
+                           expression { params.HOST_DOCKER_REPO != ''}
+                           }
+                      }
+            steps{
+                catchError {
+                sh " chmod +x ./sign_docker_image.sh"
+                sh " docker login -u ${params.REGISTRY_USER} -p $PASS_DOCKER_REPO ${params.HOST_DOCKER_REPO}:${params.PORT_DOCKER_REPO} "
+                sh "./sign_docker_image.sh $DCT_KEYS_PATH  $DOCKER_CONTENT_TRUST_ROOT_PASSPHRASE $DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE ${params.HOST_DOCKER_REPO}:${params.PORT_DOCKER_REPO}/COMAUCHATASSISTANT ${params.COMAUCHATASSISTANT_TAG} $NOTARY_SERVER "
+                 }
+                echo currentBuild.result
             }
         }
 
-        // stage('Deploy to VM') {
-        //     when { expression { params.DEPLOY_SERVICE == true } }
-        //     steps {
-        //         echo "🌐 Deploying to VM..."
-        //         // This is where you would call an Ansible playbook or SSH command
-        //         echo "Deployment command: docker-compose pull && docker-compose up -d"
-                
-        //         // Example using your Ansible pattern from the example:
-        //         /*
-        //         dir("/var/jenkins_home/ansible") {
-        //             ansiblePlaybook([
-        //                 inventory: 'hosts',
-        //                 playbook: 'playbook_chat_ai.yml',
-        //                 extraVars: [
-        //                     APP_TAG: "${params.APP_TAG}",
-        //                     BACKEND_URL: "${env.BACKEND_URL}"
-        //                 ]
-        //             ])
-        //         }
-        //         */
-        //     }
-        // }
+                stage('Push image on Azure') {
+             when {
+                 allOf {
+                       expression { params.ACR_SERVER != ''}
+                       expression { params.COMAUCHATASSISTANT_TAG != ''}
+                       }
+                  }
+             steps {
+                  withCredentials([usernamePassword(credentialsId: 'f54bada6-e0bc-4c30-9843-006c20c654da', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASSWORD')]){
+                     sh " docker tag COMAUCHATASSISTANT:latest ${params.ACR_SERVER}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG} "
+                     sh " docker login -u ${ACR_USER} -p ${ACR_PASSWORD} ${params.ACR_SERVER}"
+                     sh " docker push ${params.ACR_SERVER}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG}"
+                  }
+             }
+        }
+
+                stage('Push image on Platform registry') {
+                            when {
+                                 allOf {
+                                       expression { params.PUSH_PLATFORM_REGISTRY == true}
+                                       expression { params.PLATFORM_REGISTRY != ''}
+                                       expression { params.COMAUCHATASSISTANT_TAG != ''}
+                                       }
+                                  }
+                             steps {
+                                 withCredentials([usernamePassword(credentialsId: 'ingrid_acr_shared_registry', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASSWORD')]){
+                                  sh " docker tag COMAUCHATASSISTANT:latest ${params.PLATFORM_REGISTRY}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG} "
+                                  sh " docker login -u ${ACR_USER} -p ${ACR_PASSWORD} ${params.PLATFORM_REGISTRY}"
+                                  sh " docker push ${params.PLATFORM_REGISTRY}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG}"
+                              }
+                             }
+                }
+
     }
 
     post {
