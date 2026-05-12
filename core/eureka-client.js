@@ -2,21 +2,38 @@ const Eureka = require('eureka-js-client').Eureka;
 const { 
   PORT, 
   EUREKA_ENABLED, 
-  EUREKA_HOST, 
-  EUREKA_PORT, 
-  EUREKA_SERVICE_URL,
+  EUREKA_DEFAULT_ZONE,
   NODE_ENV
 } = require('./config');
 
 let client = null;
 
 if (EUREKA_ENABLED) {
+  // Parse EUREKA_DEFAULT_ZONE (http://user:pass@host:port/eureka/)
+  // Note: Simple URL parsing. In production, consider using a robust URL library if needed.
+  let host = 'localhost';
+  let port = 8761;
+  let servicePath = '/eureka/v2/apps/';
+
+  try {
+    const url = new URL(EUREKA_DEFAULT_ZONE);
+    host = url.hostname;
+    port = url.port || (url.protocol === 'https:' ? 443 : 80);
+    servicePath = url.pathname;
+    
+    // eureka-js-client expects servicePath to NOT end with / if it's just the prefix
+    // but the URL might include /eureka/v2/apps/
+    if (!servicePath.endsWith('/')) servicePath += '/';
+  } catch (e) {
+    console.warn('⚠️ Could not parse EUREKA_DEFAULT_ZONE, using defaults.');
+  }
+
   client = new Eureka({
     instance: {
       app: 'ollama-chat-ai',
-      hostName: process.env.HOSTNAME || 'localhost',
-      ipAddr: '127.0.0.1',
-      statusPageUrl: `http://localhost:${PORT}/api/health`,
+      hostName: process.env.POD_NAME || process.env.HOSTNAME || 'localhost',
+      ipAddr: process.env.POD_IP || '127.0.0.1',
+      statusPageUrl: `http://${process.env.POD_NAME || 'localhost'}:${PORT}/api/health`,
       port: {
         '$': PORT,
         '@enabled': 'true',
@@ -28,9 +45,9 @@ if (EUREKA_ENABLED) {
       },
     },
     eureka: {
-      host: EUREKA_HOST,
-      port: EUREKA_PORT,
-      servicePath: EUREKA_SERVICE_URL,
+      host: host,
+      port: port,
+      servicePath: servicePath,
     },
   });
 }

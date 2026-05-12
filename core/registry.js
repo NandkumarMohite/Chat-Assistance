@@ -11,13 +11,25 @@ const REGISTRY_PATH = path.join(__dirname, '..', 'api-registry.json');
 
 let API_REGISTRY = null;
 
+// ── Resolve dynamic URLs ──────────────────────
+function resolveDynamicUrls(registry) {
+  if (!registry) return;
+  
+  // Try to update baseUrl from Eureka
+  const discoveredBackendUrl = getServiceUrl(EUREKA_BACKEND_NAME);
+  if (discoveredBackendUrl) {
+    registry.baseUrl = discoveredBackendUrl;
+  }
+}
+
 // ── Load registry from disk ──────────────────
 function loadRegistry() {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8');
   API_REGISTRY = JSON.parse(raw);
   
-  // Override baseUrl from central config
+  // Set initial baseUrl from config
   API_REGISTRY.baseUrl = BACKEND_BASE_URL;
+  resolveDynamicUrls(API_REGISTRY);
   
   console.log(`✅ Loaded API registry: ${API_REGISTRY.apis.length} endpoints from ${API_REGISTRY.serviceName}`);
   return API_REGISTRY;
@@ -28,8 +40,8 @@ function reloadRegistry() {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8');
   API_REGISTRY = JSON.parse(raw);
   
-  // Override baseUrl from central config
   API_REGISTRY.baseUrl = BACKEND_BASE_URL;
+  resolveDynamicUrls(API_REGISTRY);
   
   console.log(`🔄 API registry reloaded: ${API_REGISTRY.apis.length} endpoints`);
   return API_REGISTRY;
@@ -38,13 +50,7 @@ function reloadRegistry() {
 // ── Get currently loaded registry ────────────
 function getRegistry() {
   if (!API_REGISTRY) return null;
-  
-  // Try to update baseUrl from Eureka if enabled
-  const discoveredUrl = getServiceUrl(EUREKA_BACKEND_NAME);
-  if (discoveredUrl) {
-    API_REGISTRY.baseUrl = discoveredUrl;
-  }
-  
+  resolveDynamicUrls(API_REGISTRY);
   return API_REGISTRY;
 }
 
