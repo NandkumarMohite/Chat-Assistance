@@ -1,17 +1,37 @@
+targetIp: localhost
+backend-bff: 8080
+ollama: 11434
+
 server:
   port: 3001
   node_env: development
 
 ollama:
-  base_url: "http://localhost:11434"
   model: "qwen2.5-coder:3b"
 
+
 eureka:
-  enabled: false
-  host: "localhost"
-  port: 8761
-  service_url: "/eureka/v2/apps/"
-  backend_name: "COMAU-BACKEND"
+  instance:
+    preferIpAddress: true
+  client:
+    registerWithEureka: true
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://comau:Comau123!@${targetIp}:30761/eureka/  
+
+
+    loadbalancer:
+      ribbon:
+        enabled: false
+    discovery:
+      enabled: true
+      client:
+        simple:
+          instances:
+            BACKEND_BFF:
+              - uri: http://${targetIp}:${backend-bff}    
+            ollamaF:
+              - uri: http://${targetIp}:${ollama}                  
 
 logging:
   level: debug

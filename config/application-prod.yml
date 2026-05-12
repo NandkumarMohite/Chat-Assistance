@@ -3,15 +3,17 @@ server:
   node_env: production
 
 ollama:
-  base_url: "http://production-ollama:11434"
+  # base_url: "http://production-ollama:11434" I think not requird we are going to register it on Eureka 
   model: "qwen2.5-coder:7b"
 
 eureka:
-  enabled: true
-  host: "eureka-server"
-  port: 8761
-  service_url: "/eureka/v2/apps/"
-  backend_name: "COMAU-BACKEND"
+  instance:
+    preferIpAddress: true
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://${eurekaUser}:${eurekaPass}@${eurekaIp}:${eurekaPort}/eureka/
 
 logging:
   level: info
