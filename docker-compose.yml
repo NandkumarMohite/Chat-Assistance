@@ -1,0 +1,45 @@
+services:
+  # 🤖 Ollama AI Microservice
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-service
+    volumes:
+      - ollama_storage:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    networks:
+      - chat-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # 💬 Chat AI Project Microservice
+  chat-ai:
+    image: nandkumarmohite/chat-ai-service:latest
+    container_name: chat-ai-service
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - OLLAMA_URL=http://ollama-service:11434
+      - OLLAMA_MODEL=qwen2.5-coder:3b
+      # 🌍 Point this to your actual backend (External or Microservice)
+      # This overrides the 'baseUrl' in api-registry.json
+      - BACKEND_URL=${BACKEND_URL}
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  ollama_storage:

@@ -15,6 +15,12 @@ let API_REGISTRY = null;
 function loadRegistry() {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8');
   API_REGISTRY = JSON.parse(raw);
+  
+  // Override baseUrl from environment if provided (useful for Docker/microservices)
+  if (process.env.BACKEND_URL) {
+    API_REGISTRY.baseUrl = process.env.BACKEND_URL;
+  }
+  
   console.log(`✅ Loaded API registry: ${API_REGISTRY.apis.length} endpoints from ${API_REGISTRY.serviceName}`);
   return API_REGISTRY;
 }
@@ -23,6 +29,12 @@ function loadRegistry() {
 function reloadRegistry() {
   const raw = fs.readFileSync(REGISTRY_PATH, 'utf-8');
   API_REGISTRY = JSON.parse(raw);
+
+  // Override baseUrl from environment if provided
+  if (process.env.BACKEND_URL) {
+    API_REGISTRY.baseUrl = process.env.BACKEND_URL;
+  }
+
   console.log(`🔄 API registry reloaded: ${API_REGISTRY.apis.length} endpoints`);
   return API_REGISTRY;
 }
