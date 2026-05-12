@@ -261,6 +261,425 @@
         "latest edge status",
         "monitoring status history"
       ]
+    },
+    {
+      "id": "get_plant_lines",
+      "name": "Get Plant Lines",
+      "description": "Retrieves information about all production lines of the plant. Supports optional filtering by line name and pagination using offset and limit.",
+      "method": "GET",
+      "path": "/lines",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "When provided, returns only the line with the specified name. Returns an empty list if no matching line exists."
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer($int32)",
+          "required": false,
+          "description": "Page number starting from 0. Used for pagination."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer($int32)",
+          "required": false,
+          "description": "Number of results per page. Maximum allowed value is 150."
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "name": "Stellantis Line",
+          "description": "Line for Stellantis Plant"
+        }
+      ],
+      "keywords": [
+        "get lines",
+        "list plant lines",
+        "production lines",
+        "all lines",
+        "line pagination",
+        "filter line by name"
+      ]
+    },
+    {
+      "id": "get_line_areas",
+      "name": "Get Line Areas",
+      "description": "Retrieves information about all areas belonging to a specific production line, including their associated stations. Supports optional verbose output.",
+      "method": "GET",
+      "path": "/lines/{lineId}/areas",
+      "parameters": [
+        {
+          "name": "lineId",
+          "in": "path",
+          "type": "integer($int32)",
+          "required": true,
+          "description": "The unique ID of the production line"
+        },
+        {
+          "name": "verbose",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns detailed information about areas and stations"
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "lineId": 1,
+          "lineName": "line-1",
+          "name": "area-1",
+          "description": "this area includes the first 3 stations",
+          "stations": [
+            {
+              "id": 1,
+              "areaId": 1,
+              "areaName": "area-1",
+              "lineId": 1,
+              "lineName": "line-1",
+              "stationNumber": 1,
+              "name": "OP24A",
+              "description": "welding station",
+              "workingMode": "AUTO",
+              "workType": "REWORK",
+              "stationLineOrder": "FIRST",
+              "enterMode": "BARCODE",
+              "cycleTimeMillis": 700,
+              "bottleneckCycleTimeMillis": 7000,
+              "productSerialGenerationHere": false,
+              "workOnSubproduct": false
+            }
+          ],
+          "stationsIds": [
+            0
+          ]
+        }
+      ],
+      "keywords": [
+        "get line areas",
+        "line areas",
+        "production areas",
+        "stations in line",
+        "area details",
+        "line hierarchy"
+      ]
+    },
+    {
+      "id": "get_line",
+      "name": "Get Line",
+      "description": "Retrieves the information about a specific production line of the plant using its unique line ID.",
+      "method": "GET",
+      "path": "/lines/{lineId}",
+      "parameters": [
+        {
+          "name": "lineId",
+          "in": "path",
+          "type": "integer($int32)",
+          "required": true,
+          "description": "The unique ID of the production line"
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "name": "line-1",
+          "description": "battery assembly line",
+          "lineStopConditions": "string"
+        }
+      ],
+      "keywords": [
+        "get line",
+        "line details",
+        "production line info",
+        "plant line data",
+        "retrieve line by id",
+        "line, id"
+      ]
+    },
+    {
+      "id": "get_line_areas",
+      "name": "Get Line Areas",
+      "description": "Retrieves information about all areas belonging to a specific production line, including their associated stations. Supports optional verbose output.",
+      "method": "GET",
+      "path": "/lines/{lineId}/areas",
+      "parameters": [
+        {
+          "name": "lineId",
+          "in": "path",
+          "type": "integer($int32)",
+          "required": true,
+          "description": "The unique ID of the production line"
+        },
+        {
+          "name": "verbose",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns detailed information about areas and stations"
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "lineId": 1,
+          "lineName": "line-1",
+          "name": "area-1",
+          "description": "this area includes the first 3 stations",
+          "stations": [
+            {
+              "id": 1,
+              "areaId": 1,
+              "areaName": "area-1",
+              "lineId": 1,
+              "lineName": "line-1",
+              "stationNumber": 1,
+              "name": "OP24A",
+              "description": "welding station",
+              "workingMode": "AUTO",
+              "workType": "REWORK",
+              "stationLineOrder": "FIRST",
+              "enterMode": "BARCODE",
+              "cycleTimeMillis": 700,
+              "bottleneckCycleTimeMillis": 7000,
+              "productSerialGenerationHere": false,
+              "workOnSubproduct": false
+            }
+          ],
+          "stationsIds": [
+            0
+          ]
+        }
+      ],
+      "keywords": [
+        "get line areas",
+        "line areas",
+        "production areas",
+        "stations in line",
+        "area details",
+        "line hierarchy"
+      ]
+    },
+    {
+      "id": "get_line_stations",
+      "name": "Get Line Stations",
+      "description": "Retrieves information about all stations belonging to a specific production line. Supports optional inclusion of communication variables.",
+      "method": "GET",
+      "path": "/lines/{lineId}/stations",
+      "parameters": [
+        {
+          "name": "lineId",
+          "in": "path",
+          "type": "integer($int32)",
+          "required": true,
+          "description": "The unique ID of the production line"
+        },
+        {
+          "name": "showVariables",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "When true, includes communication variables for each station"
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "areaId": 1,
+          "areaName": "area-1",
+          "lineId": 1,
+          "lineName": "line-1",
+          "stationNumber": 1,
+          "name": "OP24A",
+          "description": "welding station",
+          "workingMode": "AUTO",
+          "workType": "REWORK",
+          "stationLineOrder": "FIRST",
+          "enterMode": "BARCODE",
+          "cycleTimeMillis": 700,
+          "bottleneckCycleTimeMillis": 7000,
+          "productSerialGenerationHere": false,
+          "workOnSubproduct": false
+        }
+      ],
+      "keywords": [
+        "get line stations",
+        "line stations",
+        "production stations",
+        "stations by line",
+        "station details",
+        "manufacturing line stations"
+      ]
+    },
+    {
+      "id": "get_all_line_links",
+      "name": "Get All Line Links",
+      "description": "Retrieves all links between production lines with optional pagination support.",
+      "method": "GET",
+      "path": "/line-links",
+      "parameters": [
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer($int32)",
+          "required": false,
+          "description": "Page number starting from 0. Used for pagination. Default is 0."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer($int32)",
+          "required": false,
+          "description": "Number of results per page. Maximum value is 150."
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 0,
+          "fromLineId": 0,
+          "fromLineName": "string",
+          "toLineId": 0,
+          "toLineName": "string",
+          "linkType": "AGV",
+          "condition": "string",
+          "journeyTimeMillis": 0,
+          "journeyTimeBottleneckMillis": 0
+        }
+      ],
+      "keywords": [
+        "get line links",
+        "list line links",
+        "production line connections",
+        "line routing",
+        "AGV links",
+        "line-to-line mapping"
+      ]
+    },
+    {
+      "id": "get_line_link_by_id",
+      "name": "Get Line Link By Id",
+      "description": "Retrieves detailed information about a specific line link using its unique identifier.",
+      "method": "GET",
+      "path": "/line-links/{id}",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "type": "integer($int32)",
+          "required": true,
+          "description": "The unique ID of the line link"
+        }
+      ],
+      "responseExample": {
+        "id": 0,
+        "fromLineId": 0,
+        "fromLineName": "string",
+        "toLineId": 0,
+        "toLineName": "string",
+        "linkType": "AGV",
+        "condition": "string",
+        "journeyTimeMillis": 0,
+        "journeyTimeBottleneckMillis": 0
+      },
+      "keywords": [
+        "get line link",
+        "line link details",
+        "connection between lines",
+        "retrieve link by id",
+        "AGV route link"
+      ]
+    },
+    {
+      "id": "get_cycle_configuration",
+      "name": "Get Cycle Configuration",
+      "description": "Retrieves cycle-time related configuration parameters for stations and their associated models. Includes both default and model-specific cycle time settings.",
+      "method": "GET",
+      "path": "/cycle-configuration",
+      "parameters": [
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer($int32)",
+          "required": false,
+          "description": "Page number starting from 0. Used for pagination."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer($int32)",
+          "required": false,
+          "description": "Number of results per page. Maximum value is 150."
+        }
+      ],
+      "responseExample": {
+        "stationId": 0,
+        "stopThreshold": 0,
+        "stopThresholdHigh": 0,
+        "reworkExcluded": true,
+        "cycleTimeIdeal": 0,
+        "cycleTimeBottleneck": 0,
+        "isDefaultConfig": true,
+        "models": [
+          {
+            "modelIdentifier": "string",
+            "cycleTimeIdeal": 0,
+            "cycleTimeBottleneck": 0
+          }
+        ]
+      },
+      "keywords": [
+        "cycle configuration",
+        "cycle time settings",
+        "station cycle time",
+        "manufacturing cycle parameters",
+        "production timing config",
+        "cycle time per model"
+      ]
+    },
+    {
+      "id": "get_cycle_configuration_by_station",
+      "name": "Get Cycle Configuration By Station",
+      "description": "Retrieves KPI and cycle-time configuration parameters for a specific station, used for KPI and OEE computation. Includes station-level and model-specific cycle time settings.",
+      "method": "GET",
+      "path": "/cycle-configuration/{stationId}",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "path",
+          "type": "integer($int32)",
+          "required": true,
+          "description": "The unique ID of the station"
+        }
+      ],
+      "responseExample": {
+        "stationId": 0,
+        "stopThreshold": 0,
+        "stopThresholdHigh": 0,
+        "reworkExcluded": true,
+        "cycleTimeIdeal": 0,
+        "cycleTimeBottleneck": 0,
+        "isDefaultConfig": true,
+        "models": [
+          {
+            "modelIdentifier": "string",
+            "cycleTimeIdeal": 0,
+            "cycleTimeBottleneck": 0
+          }
+        ]
+      },
+      "keywords": [
+        "kpi configuration",
+        "oee configuration",
+        "cycle time by station",
+        "station performance parameters",
+        "manufacturing KPI setup",
+        "oee computation config"
+      ]
     }
   ]
 }
