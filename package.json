@@ -1,5 +1,5 @@
 {
-  "name": "ollama-chat-ai",
+  "name": "comauchatassistant",
   "version": "1.0.0",
   "description": "AI Chat Bot powered by Ollama Thinking Model",
   "main": "server.js",

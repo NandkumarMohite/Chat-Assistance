@@ -1,4 +1,4 @@
-# 🤖 Chat AI Microservice
+# 🤖 Comau Chat Assistant Microservice
 
 This project is a high-performance AI Chat Assistant powered by **Ollama** and integrated with the **Comau Backend API**. It is architected to run as a microservice in a containerized environment with full CI/CD support.
 
@@ -21,7 +21,7 @@ The application will be available at `http://localhost:3000`.
 
 ## 🏗️ Architecture
 
-- **Chat AI Service**: Node.js (Express) application handling logic and API orchestration.
+- **Comau Chat Assistant Service**: Node.js (Express) application handling logic and API orchestration.
 - **Ollama Service**: Official container for local LLM inference.
 - **Comau Backend**: Core business logic API (external dependency).
 

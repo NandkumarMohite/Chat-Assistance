@@ -1,6 +1,6 @@
 {
   "baseUrl": "http://placeholder-overridden-by-env/api/v1",
-  "serviceName": "Comau",
+  "serviceName": "Comau Chat Assistant",
   "description": "Comau backend API — manages users, products, categories, purchases, and more.",
   "dependencyChains": [
     {

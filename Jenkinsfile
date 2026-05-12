@@ -49,7 +49,7 @@ pipeline {
     stages {
         stage('Initialize') {
             steps {
-                echo "🚀 Starting build for Chat AI Service..."
+                echo "🚀 Starting build for Comau Chat Assistant..."
                 echo "📍 Backend Target: ${env.BACKEND_URL}"
             }
         }
@@ -80,7 +80,7 @@ pipeline {
                 sh """
                     docker build \
                     --build-arg NODE_VERSION=${params.NODE_VERSION} \
-                    -t ${env.DOCKER_HUB_USER}/chat-ai-service:${params.APP_TAG} .
+                    -t ${env.DOCKER_HUB_USER}/comauchatassistant:${params.APP_TAG} .
                 """
             }
         }
@@ -97,7 +97,7 @@ pipeline {
                 catchError {
                 sh " chmod +x ./sign_docker_image.sh"
                 sh " docker login -u ${params.REGISTRY_USER} -p $PASS_DOCKER_REPO ${params.HOST_DOCKER_REPO}:${params.PORT_DOCKER_REPO} "
-                sh "./sign_docker_image.sh $DCT_KEYS_PATH  $DOCKER_CONTENT_TRUST_ROOT_PASSPHRASE $DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE ${params.HOST_DOCKER_REPO}:${params.PORT_DOCKER_REPO}/COMAUCHATASSISTANT ${params.COMAUCHATASSISTANT_TAG} $NOTARY_SERVER "
+                sh "./sign_docker_image.sh $DCT_KEYS_PATH  $DOCKER_CONTENT_TRUST_ROOT_PASSPHRASE $DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE ${params.HOST_DOCKER_REPO}:${params.PORT_DOCKER_REPO}/comauchatassistant ${params.comauchatassistant_TAG} $NOTARY_SERVER "
                  }
                 echo currentBuild.result
             }
@@ -107,14 +107,14 @@ pipeline {
              when {
                  allOf {
                        expression { params.ACR_SERVER != ''}
-                       expression { params.COMAUCHATASSISTANT_TAG != ''}
+                       expression { params.comauchatassistant_TAG != ''}
                        }
                   }
              steps {
                   withCredentials([usernamePassword(credentialsId: 'f54bada6-e0bc-4c30-9843-006c20c654da', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASSWORD')]){
-                     sh " docker tag COMAUCHATASSISTANT:latest ${params.ACR_SERVER}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG} "
+                     sh " docker tag comauchatassistant:latest ${params.ACR_SERVER}/comauchatassistant:${params.comauchatassistant_TAG} "
                      sh " docker login -u ${ACR_USER} -p ${ACR_PASSWORD} ${params.ACR_SERVER}"
-                     sh " docker push ${params.ACR_SERVER}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG}"
+                     sh " docker push ${params.ACR_SERVER}/comauchatassistant:${params.comauchatassistant_TAG}"
                   }
              }
         }
@@ -124,14 +124,14 @@ pipeline {
                                  allOf {
                                        expression { params.PUSH_PLATFORM_REGISTRY == true}
                                        expression { params.PLATFORM_REGISTRY != ''}
-                                       expression { params.COMAUCHATASSISTANT_TAG != ''}
+                                       expression { params.comauchatassistant_TAG != ''}
                                        }
                                   }
                              steps {
                                  withCredentials([usernamePassword(credentialsId: 'ingrid_acr_shared_registry', usernameVariable: 'ACR_USER', passwordVariable: 'ACR_PASSWORD')]){
-                                  sh " docker tag COMAUCHATASSISTANT:latest ${params.PLATFORM_REGISTRY}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG} "
+                                  sh " docker tag comauchatassistant:latest ${params.PLATFORM_REGISTRY}/comauchatassistant:${params.comauchatassistant_TAG} "
                                   sh " docker login -u ${ACR_USER} -p ${ACR_PASSWORD} ${params.PLATFORM_REGISTRY}"
-                                  sh " docker push ${params.PLATFORM_REGISTRY}/COMAUCHATASSISTANT:${params.COMAUCHATASSISTANT_TAG}"
+                                  sh " docker push ${params.PLATFORM_REGISTRY}/comauchatassistant:${params.comauchatassistant_TAG}"
                               }
                              }
                 }

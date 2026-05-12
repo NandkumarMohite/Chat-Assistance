@@ -6,6 +6,6 @@
  |  `----.|  |  |  |  /  _____  \      |  |      /  _____  \  |  | 
   \______||__|  |__| /__/     \__\     |__|     /__/     \__\ |__| 
                                                                     
-                     🚀 AI MICROSERVICE SYSTEM
+                     🚀 COMAU CHAT ASSISTANT
            Powered by Ollama | Orchestrated by Docker
 ____________________________________________________________________

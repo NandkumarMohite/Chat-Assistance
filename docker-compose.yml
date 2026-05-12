@@ -18,10 +18,10 @@ services:
               count: all
               capabilities: [gpu]
 
-  # 💬 Chat AI Project Microservice
-  chat-ai:
-    image: nandkumarmohite/chat-ai-service:latest
-    container_name: chat-ai-service
+  # 💬 Comau Chat Assistant Microservice
+  comauchatassistant:
+    image: nandkumarmohite/comauchatassistant:latest
+    container_name: comauchatassistant
     ports:
       - "3000:3000"
     environment:
