@@ -19,10 +19,7 @@ pipeline {
         DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE = credentials('DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE')
         DCT_KEYS_PATH = credentials('DCT_KEYS_PATH')
         NOTARY_SERVER = 'https://172.22.176.195:4443'
-        // Credentials stored in Jenkins
-        DOCKER_HUB_USER = 'nandkumarmohite'
-        DOCKER_HUB_PASS = credentials('registry-pass') // Add this ID in Jenkins Credentials
-        
+        // Credentials stored in Jenkins        
         // Use the centralized BACKEND_URL from Jenkins environment or credentials
         BACKEND_URL = credentials('backend-api-url') 
     }
@@ -80,7 +77,7 @@ pipeline {
                 sh """
                     docker build \
                     --build-arg NODE_VERSION=${params.NODE_VERSION} \
-                    -t ${env.DOCKER_HUB_USER}/comauchatassistant:${params.APP_TAG} .
+                    -t ${params.PLATFORM_REGISTRY}/comauchatassistant:${params.APP_TAG} .
                 """
             }
         }
