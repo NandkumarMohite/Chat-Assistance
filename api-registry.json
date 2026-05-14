@@ -529,14 +529,14 @@
           "description": "Model identifier used to filter cycle-time data."
         },
         {
-          "name": "startInterval",
+          "name": "startDate",
           "in": "query",
           "type": "string",
           "required": true,
           "description": "Start date/time interval for retrieving cycle-time aggregation data."
         },
         {
-          "name": "endInterval",
+          "name": "endDate",
           "in": "query",
           "type": "string",
           "required": true,
