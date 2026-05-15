@@ -1,0 +1,1957 @@
+{
+  "baseUrl": "http://placeholder-overridden-by-env/api/v1",
+  "serviceName": "Comau Chat Assistant",
+  "description": "Comau backend API — manages users, products, categories, purchases, and more.",
+  "intentCategories": {
+    "oee": ["get_oee_parameters", "get_tree_view_of_oee_data", "get_oee_station_parameters", "get_line_oee_report_data", "get_busy_oee_station", "get_busy_availability", "get_kpi_summary_full_data"],
+    "cycle_time": ["get_time_between_cycles", "get_cycle_times", "get_tree_view_of_cycle_time", "get_cycle_operations"],
+    "quality": ["get_station_quality", "get_overall_cycle_counts"],
+    "performance": ["get_performance_and_productivity"]
+  },
+  "synonyms": {
+    "good cycles": ["ok cycles", "successful cycles", "passed cycles", "ok_cycles"],
+    "bad cycles": ["nok cycles", "failed cycles", "rejected cycles", "nok_cycles"],
+    "efficiency": ["oee", "overall equipment effectiveness", "equipment effectiveness"],
+    "downtime": ["stop time", "failures", "unavailability", "stopped"],
+    "uptime": ["operating time", "running time", "availability"],
+    "throughput": ["cycle count", "production count", "total cycles"],
+    "plant level": ["full plant", "overall", "plant wide", "entire plant"],
+    "station level": ["single station", "specific station", "by station"]
+  },
+  "dateParamAliases": {
+    "from": ["from", "start", "startDate", "startInterval", "dateFrom"],
+    "to": ["to", "end", "endDate", "endInterval", "dateTo"]
+  },
+  "routingConfig": {
+    "confidenceThreshold": 0.7,
+    "enableTwoStageRouting": false,
+    "enableSynonymExpansion": true
+  },
+  "dependencyChains": [
+    {
+      "id": "purchases_by_user_phone",
+      "description": "Get purchase history for a user identified by phone number. First fetches all users, filters by phone, extracts userId, then fetches purchases for that user.",
+      "triggerKeywords": [
+        "purchase",
+        "order",
+        "bought",
+        "history"
+      ],
+      "triggerCondition": "user identifies a person by phone number (not by ID)",
+      "steps": [
+        {
+          "apiId": "get_all_users",
+          "filterBy": "phone",
+          "filterValueFrom": "userInput",
+          "extractField": "id",
+          "saveAs": "resolvedUserId"
+        },
+        {
+          "apiId": "get_purchases_by_user",
+          "pathParams": {
+            "userId": "$resolvedUserId"
+          }
+        }
+      ]
+    },
+    {
+      "id": "purchases_by_user_email",
+      "description": "Get purchase history for a user identified by email. First fetches all users, filters by email, extracts userId, then fetches purchases for that user.",
+      "triggerKeywords": [
+        "purchase",
+        "order",
+        "bought",
+        "history"
+      ],
+      "triggerCondition": "user identifies a person by email address (not by ID)",
+      "steps": [
+        {
+          "apiId": "get_all_users",
+          "filterBy": "email",
+          "filterValueFrom": "userInput",
+          "extractField": "id",
+          "saveAs": "resolvedUserId"
+        },
+        {
+          "apiId": "get_purchases_by_user",
+          "pathParams": {
+            "userId": "$resolvedUserId"
+          }
+        }
+      ]
+    },
+    {
+      "id": "purchases_by_user_name",
+      "description": "Get purchase history for a user identified by name. First fetches all users, filters by name, extracts userId, then fetches purchases for that user.",
+      "triggerKeywords": [
+        "purchase",
+        "order",
+        "bought",
+        "history"
+      ],
+      "triggerCondition": "user identifies a person by their name (not by ID)",
+      "steps": [
+        {
+          "apiId": "get_all_users",
+          "filterBy": "name",
+          "filterValueFrom": "userInput",
+          "extractField": "id",
+          "saveAs": "resolvedUserId"
+        },
+        {
+          "apiId": "get_purchases_by_user",
+          "pathParams": {
+            "userId": "$resolvedUserId"
+          }
+        }
+      ]
+    }
+  ],
+  "_TODO_HOW_TO_ADD_NEW_API": "To add a New API to the AI Assistant, you ONLY need to add a new object inside the 'apis' array below! NO JavaScript code changes are needed in server.js or anywhere else. The AI will automatically read the new API, understand its description, and start using it.",
+  "apis": [
+    {
+      "id": "get_oee_parameters",
+      "name": "Get OEE Parameters",
+      "category": "oee",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for SINGLE station OEE metrics",
+        "Requires stationId - NOT for plant-wide OEE",
+        "Returns availability percentage, operating time, failures",
+        "DO NOT use for 'full plant OEE' or 'overall OEE' - use get_tree_view_of_oee_data instead"
+      ],
+      "description": "Retrieves OEE parameters for a specific station, including operating time, availability percentage, stop threshold, planned production time, failures, scheduled breaks, and overtime changes.",
+      "method": "GET",
+      "path": "/bff/get-oee-parameters",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID to filter OEE parameters by."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get the station OEE parameters starting from this date/time."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get the station OEE parameters up to this date/time."
+        }
+      ],
+      "responseExample": {
+        "time": 4200,
+        "percentage": 1,
+        "totalParameters": [
+          {
+            "name": "Operating Time",
+            "value": 4200
+          },
+          {
+            "name": "Stop Threshold",
+            "value": 60
+          },
+          {
+            "name": "Planned Production Time",
+            "value": 4200
+          },
+          {
+            "name": "Sum Of Failures",
+            "value": 0
+          },
+          {
+            "name": "Scheduled Breaks",
+            "value": 0
+          }
+        ],
+        "overTimeChanges": [
+          {
+            "date": "2026-05-13T06:00:00Z",
+            "number": 1
+          },
+          {
+            "date": "2026-05-13T07:00:00Z",
+            "number": 1
+          },
+          {
+            "date": "2026-05-13T07:05:00Z",
+            "number": 1
+          }
+        ],
+        "lowestAggregator": 5
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-oee-parameters?stationId=1",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-oee-parameters?stationId=1&startDate=2026-05-01T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-oee-parameters?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "oee parameters",
+        "station oee",
+        "availability",
+        "availability percentage",
+        "operating time",
+        "stop time",
+        "stop threshold",
+        "planned production time",
+        "station performance",
+        "oee metrics",
+        "station analytics",
+        "overtime changes",
+        "sum of failures",
+        "scheduled breaks",
+        "This api will give you Paramaters requird for calculating Availability like Planned Production time, Stop Threshold, and Operating Time"
+      ],
+      "responseHints": [
+        "percentage (availability %)",
+        "time (operating time in seconds)",
+        "totalParameters (array with Operating Time, Stop Threshold, Planned Production Time, Sum Of Failures, Scheduled Breaks)",
+        "overTimeChanges (hourly availability changes)"
+      ]
+    },
+    {
+      "id": "get_time_between_cycles",
+      "name": "Get Time Between Cycles",
+      "category": "cycle_time",
+      "priority": 3,
+      "disambiguationHints": [
+        "Use for time GAP between cycles, not cycle duration",
+        "Good for 'time between cycles', 'cycle intervals', 'gap between production'",
+        "Returns duration arrays showing inter-cycle timing",
+        "Different from get_cycle_times which measures cycle duration itself"
+      ],
+      "description": "Retrieves the average aggregation of time between production cycles for one or more stations within a given time interval. Supports filtering by model, aggregation level, pagination, and optional aggregation mode.",
+      "method": "GET",
+      "path": "/bff/time-between-cycles",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma seperated String of station IDs to retrieve cycle time data for."
+        },
+        {
+          "name": "model",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model identifier used to filter cycle data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time of the interval for retrieving cycle aggregation data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time of the interval for retrieving cycle aggregation data."
+        },
+        {
+          "name": "aggLevel",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Aggregation level used for grouping cycle data (e.g. hourly, daily, weekly)."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated cycle information. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "duration": [
+            45,
+            50,
+            47
+          ],
+          "max": [
+            55
+          ],
+          "min": [
+            40
+          ],
+          "std": [
+            3
+          ],
+          "nCycles": 120
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/time-between-cycles?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z&aggLevel=hourly",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/time-between-cycles?stations=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z&aggLevel=daily&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/time-between-cycles?stations=1&model=MODEL_A&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=weekly",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "time between cycles",
+        "cycle time",
+        "cycle aggregation",
+        "production cycles",
+        "station cycles",
+        "average cycle duration",
+        "cycle statistics",
+        "manufacturing analytics",
+        "cycle performance",
+        "time aggregation",
+        "station production metrics",
+        "cycle duration",
+        "max cycle time",
+        "min cycle time",
+        "number of cycles"
+      ],
+      "responseHints": [
+        "duration (array of cycle durations)",
+        "max (maximum cycle time)",
+        "min (minimum cycle time)",
+        "std (standard deviation)",
+        "nCycles (total number of cycles)"
+      ]
+    },
+    {
+      "id": "get_overall_cycle_counts", 
+      "name": "Get Overall Cycle Counts",
+      "category": "quality",
+      "priority": 1,
+      "disambiguationHints": [
+        "Use for OK/NOK cycle counts and quality metrics",
+        "Best for 'good cycles', 'bad cycles', 'ok cycles', 'nok cycles'",
+        "Returns ok_cycles, nok_cycles, totalDuration",
+        "Use for production quality analysis"
+      ],
+      "description": "Retrieves aggregated cycle count statistics for one or more sources within a specified time interval, including OK/NOK cycles, rework-free cycles, total durations, and reference cycle times.",
+      "method": "GET",
+      "path": "/bff/cycle-overall-count",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of source IDs to retrieve overall cycle count data for."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time interval for retrieving cycle count aggregation data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time interval for retrieving cycle count aggregation data."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated cycle count data. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "totalDuration": 5400,
+          "totalTimeNoRework": 5000,
+          "ok_cycles": 120,
+          "nok_cycles": 5,
+          "ok_NoReworkCycles": 118,
+          "nok_NoReworkCycles": 2,
+          "refCycleTime": 45,
+          "startTime": "2026-05-14T05:23:24.333Z",
+          "endTime": "2026-05-14T06:23:24.333Z",
+          "ncycles": 125
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/cycle-overall-count?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle count data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "overall cycle counts",
+        "cycle aggregation",
+        "ok cycles",
+        "nok cycles",
+        "good cycles",
+        "bad cycles",
+        "rework cycles",
+        "production cycle count",
+        "cycle statistics",
+        "source cycle metrics",
+        "manufacturing analytics",
+        "cycle duration",
+        "reference cycle time",
+        "production monitoring",
+        "total cycles",
+        "cycle quality",
+        "This api will give you cycle time for all stations and all models"
+      ],
+      "responseHints": [
+        "ok_cycles (good/successful cycles)",
+        "nok_cycles (failed/bad cycles)",
+        "totalDuration (total production time)",
+        "ncycles (total number of cycles)",
+        "refCycleTime (reference/target cycle time)",
+        "ok_NoReworkCycles (good cycles without rework)"
+      ]
+    },
+    {
+      "id": "get_cycle_times",
+      "name": "Get Cycle Times",
+      "category": "cycle_time",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for station-level cycle time aggregation",
+        "Good for 'cycle times for station X', 'average cycle duration'",
+        "Returns duration arrays, max/min/std statistics",
+        "NOT for plant-wide view - use get_tree_view_of_cycle_time instead"
+      ],
+      "description": "Retrieves average cycle-time aggregation data for one or more sources within a specified time interval, including duration statistics, reference cycle time, exceeded cycles, and total cycle counts.",
+      "method": "GET",
+      "path": "/bff/cycle-times",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of station IDs to retrieve cycle-time data for."
+        },
+        {
+          "name": "model",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model identifier used to filter cycle-time data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get the cycle time starting from this date/time."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get the cycle time ending at this date/time."
+        },
+        {
+          "name": "aggLevel",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Aggregation level used for grouping cycle-time data (e.g. hourly, daily, weekly)."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated cycle-time data. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "refCycleTime": 45,
+          "duration": [
+            42,
+            46,
+            44
+          ],
+          "max": [
+            50
+          ],
+          "min": [
+            40
+          ],
+          "std": [
+            3
+          ],
+          "nexceedCycles": 5,
+          "nCycles": 120
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/cycle-times?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-times?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle-time data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "cycle times",
+        "cycle-time aggregation",
+        "average cycle time",
+        "cycle duration",
+        "reference cycle time",
+        "production cycle metrics",
+        "cycle statistics",
+        "exceeded cycles",
+        "manufacturing analytics",
+        "source cycle data",
+        "production performance",
+        "max cycle time",
+        "min cycle time",
+        "standard deviation",
+        "This Api will give how many cycle exceeded the reference cycle time for each model"
+      ],
+      "responseHints": [
+        "duration (array of cycle times)",
+        "max (maximum cycle time)",
+        "min (minimum cycle time)",
+        "std (standard deviation)",
+        "refCycleTime (reference/target cycle time)",
+        "ncycles (total cycles)",
+        "nExceededCycles (cycles exceeding reference)"
+      ]
+    },
+    {
+      "id": "get_tree_view_of_cycle_time",
+      "name": "Get Tree View Of Cycle Time",
+      "category": "cycle_time",
+      "priority": 1,
+      "disambiguationHints": [
+        "Use for PLANT-LEVEL or HIERARCHICAL cycle time data",
+        "Best for 'full plant cycle time', 'plant average cycle time'",
+        "Returns plantAverageCycleTime, breakdown by line/station/model",
+        "stationIds is OPTIONAL - omit for full plant data"
+      ],
+      "description": "Retrieves cycle time metrics in a hierarchical tree format for plants, lines, stations, and models. The response includes average cycle times, total cycle counts, exceeded reference cycle counts, and detailed station and model metrics.",
+      "method": "GET",
+      "path": "/bff/get-tree-view-of-ct",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of station IDs used to filter cycle time tree data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving cycle time metrics."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving cycle time metrics."
+        }
+
+      ],
+      "responseExample": {
+        "plantAverageCycleTime": 52,
+        "plantTotalCycles": 1200,
+        "plantCyclesWithExceedingRefCT": 85,
+        "refCycleTime": 45,
+        "message": "Cycle time tree data retrieved successfully",
+        "componentMetrics": [
+          {
+            "stationId": 101,
+            "stationName": "Station A",
+            "lineName": "Assembly Line 1",
+            "componentId": 10,
+            "lineId": 1,
+            "totalCycles": 300,
+            "totalExceedCycles": 20,
+            "avgCycleTime": 48,
+            "maxCycleTime": 70,
+            "minCycleTime": 35,
+            "avgStd": 4,
+            "isLastStation": false,
+            "refCycleTime": 45,
+            "modelMetrics": [
+              {
+                "stationId": 101,
+                "modelName": "MODEL_X",
+                "totalCycles": 150,
+                "totalExceedCycles": 10,
+                "avgCycleTime": 47,
+                "maxCycleTime": 65,
+                "minCycleTime": 36,
+                "avgStd": 3,
+                "refCycleTime": 45
+              }
+            ]
+          }
+        ],
+        "stationMatrics": [
+          {
+            "stationId": 102,
+            "stationName": "Station B",
+            "lineName": "Assembly Line 1",
+            "componentId": 11,
+            "lineId": 1,
+            "totalCycles": 250,
+            "totalExceedCycles": 15,
+            "avgCycleTime": 50,
+            "maxCycleTime": 72,
+            "minCycleTime": 38,
+            "avgStd": 5,
+            "isLastStation": false,
+            "refCycleTime": 45,
+            "modelMetrics": [
+              {
+                "stationId": 102,
+                "modelName": "MODEL_Y",
+                "totalCycles": 120,
+                "totalExceedCycles": 8,
+                "avgCycleTime": 49,
+                "maxCycleTime": 68,
+                "minCycleTime": 39,
+                "avgStd": 4,
+                "refCycleTime": 45
+              }
+            ]
+          }
+        ],
+        "lineHierarchies": [
+          {
+            "lineId": 1,
+            "lineName": "Assembly Line 1",
+            "avgCycleTime": 49,
+            "totalCycles": 550,
+            "totalExceedCycles": 35,
+            "refCycleTime": 45,
+            "stationMatrics": [
+              {
+                "stationId": 101,
+                "stationName": "Station A",
+                "lineName": "Assembly Line 1",
+                "componentId": 10,
+                "lineId": 1,
+                "totalCycles": 300,
+                "totalExceedCycles": 20,
+                "avgCycleTime": 48,
+                "maxCycleTime": 70,
+                "minCycleTime": 35,
+                "avgStd": 4,
+                "isLastStation": false,
+                "refCycleTime": 45,
+                "modelMetrics": [
+                  {
+                    "stationId": 101,
+                    "modelName": "MODEL_X",
+                    "totalCycles": 150,
+                    "totalExceedCycles": 10,
+                    "avgCycleTime": 47,
+                    "maxCycleTime": 65,
+                    "minCycleTime": 36,
+                    "avgStd": 3,
+                    "refCycleTime": 45
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-tree-view-of-ct?startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-tree-view-of-ct?stationIds=101,102&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-tree-view-of-ct?stationIds=101&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle time tree data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "cycle time tree",
+        "tree view cycle time",
+        "plant cycle metrics",
+        "full plant cycle time",
+        "plant average cycle time",
+        "plant total cycles",
+        "line hierarchy",
+        "station cycle time",
+        "model cycle metrics",
+        "cycle time analytics",
+        "production hierarchy",
+        "manufacturing tree data",
+        "cycle performance",
+        "reference cycle time",
+        "cycle exceed counts",
+        "exceeded reference cycles",
+        "station metrics",
+        "line metrics",
+        "this API is Imp for getting the Cycle time for Plant, Lines, Stations and Models in a hierarchical way"
+      ],
+      "responseHints": [
+        "plantAverageCycleTime (overall plant average)",
+        "plantTotalCycles (total cycles at plant level)",
+        "plantCyclesWithExceedingRefCT (cycles exceeding reference)",
+        "lineHierarchies (breakdown by production line)",
+        "stationMatrics (station-level metrics)",
+        "modelMetrics (model-wise breakdown)"
+      ]
+    },
+    {
+      "id": "get_cycle_operations",
+      "name": "Get Cycle Operations",
+      "description": "Retrieves average aggregation data for cycle operations within a specified time interval, including operation execution metrics such as mean operation time, delta values, maximum/minimum durations, standard deviation, exceeded operation counts, and total cycles.",
+      "method": "GET",
+      "path": "/bff/operations-analysis",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of station IDs used to retrieve operation analysis data."
+        },
+        {
+          "name": "model",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model identifier used to filter operation analysis data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time interval for retrieving cycle operation analysis."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time interval for retrieving cycle operation analysis."
+        },
+        {
+          "name": "aggLevel",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Aggregation level used for grouping operation analysis data (e.g. hourly, daily, weekly)."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated operation analysis data. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "opId": 1001,
+          "refOpTime": 30,
+          "mean": [
+            28,
+            29,
+            31
+          ],
+          "delta": [
+            -2,
+            -1,
+            1
+          ],
+          "max": [
+            35
+          ],
+          "min": [
+            25
+          ],
+          "std": [
+            2
+          ],
+          "nexceedOpTime": 4,
+          "nCycles": 120
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/operations-analysis?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/operations-analysis?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/operations-analysis?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No operation analysis data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "operations analysis",
+        "cycle operations",
+        "operation aggregation",
+        "operation metrics",
+        "operation analysis",
+        "operation time",
+        "reference operation time",
+        "operation statistics",
+        "production operations",
+        "manufacturing analytics",
+        "cycle operation performance",
+        "operation exceed counts",
+        "mean operation time",
+        "delta operation"
+      ],
+      "responseHints": [
+        "opName (operation name)",
+        "meanOpTime (average operation time)",
+        "deltaOpTime (variation from reference)",
+        "max (maximum operation time)",
+        "min (minimum operation time)",
+        "std (standard deviation)",
+        "nexceedOpTime (operations exceeding reference)",
+        "nCycles (total cycles)"
+      ]
+    },
+    {
+      "id": "get_tree_view_of_oee_data",
+      "name": "Get Tree View Of OEE Data",
+      "category": "oee",
+      "priority": 1,
+      "disambiguationHints": [
+        "Use for PLANT-LEVEL or HIERARCHICAL OEE data",
+        "Best for 'full plant OEE', 'overall OEE', 'plant wide metrics'",
+        "Returns breakdown by line, station, and model",
+        "stationIds is OPTIONAL - omit for full plant data"
+      ],
+      "description": "Retrieves OEE metrics in a hierarchical tree format for plants, lines, stations, and models. The response includes OEE, availability, performance, and quality metrics at plant, line, station, component, and model levels.",
+      "method": "GET",
+      "path": "/bff/get-tree-view-of-oee-data",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of station IDs used to filter OEE tree data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving OEE metrics."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving OEE metrics."
+        }
+      ],
+      "responseExample": {
+        "overallOee": 85,
+        "overallQuality": 92,
+        "overallPerformance": 88,
+        "overallAvailability": 90,
+        "message": "OEE tree data retrieved successfully",
+        "unit": "milliseconds",
+        "componentMetrics": [
+          {
+            "stationId": 101,
+            "stationName": "Station A",
+            "componentId": 10,
+            "lineId": 1,
+            "oee": 84,
+            "availablity": 89,
+            "performance": 87,
+            "quality": 92,
+            "isLastStation": false,
+            "modelMetrics": [
+              {
+                "stationId": 101,
+                "modelName": "MODEL_X",
+                "oee": 83,
+                "availablity": 88,
+                "performance": 86,
+                "quality": 91
+              }
+            ]
+          }
+        ],
+        "stationMatrics": [
+          {
+            "stationId": 102,
+            "stationName": "Station B",
+            "componentId": 11,
+            "lineId": 1,
+            "oee": 86,
+            "availablity": 91,
+            "performance": 89,
+            "quality": 93,
+            "isLastStation": false,
+            "modelMetrics": [
+              {
+                "stationId": 102,
+                "modelName": "MODEL_Y",
+                "oee": 85,
+                "availablity": 90,
+                "performance": 88,
+                "quality": 92
+              }
+            ]
+          }
+        ],
+        "lineHierarchies": [
+          {
+            "lineId": 1,
+            "lineName": "Assembly Line 1",
+            "oee": 85,
+            "performance": 88,
+            "availablity": 90,
+            "quality": 92,
+            "stationMatrics": [
+              {
+                "stationId": 101,
+                "stationName": "Station A",
+                "componentId": 10,
+                "lineId": 1,
+                "oee": 84,
+                "availablity": 89,
+                "performance": 87,
+                "quality": 92,
+                "isLastStation": false,
+                "modelMetrics": [
+                  {
+                    "stationId": 101,
+                    "modelName": "MODEL_X",
+                    "oee": 83,
+                    "availablity": 88,
+                    "performance": 86,
+                    "quality": 91
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-tree-view-of-oee-data?startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-tree-view-of-oee-data?stationIds=101,102&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-tree-view-of-oee-data?stationIds=101&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No OEE tree data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "oee tree",
+        "tree view oee",
+        "plant oee metrics",
+        "Full Plant OEE",
+        "Plant Level OEE",
+        "overall equipment effectiveness",
+        "overall oee",
+        "overall quality",
+        "overall performance",
+        "overall availability",
+        "line hierarchy",
+        "station oee",
+        "model oee metrics",
+        "oee analytics",
+        "production hierarchy",
+        "manufacturing oee",
+        "availability metrics",
+        "performance metrics",
+        "quality metrics",
+        "station metrics",
+        "line metrics",
+        "This Api will give you OEE, availability, performance, and quality for Plant, Lines, Stations and Models in a hierarchical way (OEE, availability, performance, and quality)"
+      ],
+      "responseHints": [
+        "overallOee (overall plant OEE)",
+        "Full Plant level OEE data  (plant then line then station OEE)",
+        "this api has all the OEEs",
+        "overallQuality (overall quality percentage)",
+        "overallPerformance (overall performance percentage)",
+        "overallAvailability (overall availability percentage)",
+        "lineHierarchies (breakdown by production line)",
+        "stationMatrics (station-level OEE metrics)",
+        "modelMetrics (model-wise OEE breakdown)"
+      ]
+    },
+    {
+      "id": "get_station_quality",
+      "name": "Get Station Quality",
+      "category": "quality",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for SINGLE station quality metrics",
+        "Best for 'quality for station X', 'good/bad cycles by station'",
+        "Returns quality percentage, cycle counts by model",
+        "Requires stationId - not for plant-wide quality"
+      ],
+      "description": "Retrieves quality metrics for a specific station, including overall quality percentage, total cycles, good cycles, bad cycles, and model-wise quality distribution. Supports filtering with or without reworked cycles.",
+      "method": "GET",
+      "path": "/bff/get-quality",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to retrieve quality metrics."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving quality data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving quality data."
+        },
+        {
+          "name": "reworkExcluded",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If false, retrieves quality for all cycles. If true, retrieves quality data only for non-reworked cycles."
+        }
+      ],
+      "responseExample": {
+        "overallQuality": 96.77,
+        "totalCycles": 377,
+        "goodCycles": 500,
+        "badCycles": 400,
+        "modelwiseDistribution": [
+          {
+            "modelName": "MODEL_X",
+            "quality": 97.5,
+            "totalCycles": 200,
+            "goodCycles": 195,
+            "badCycles": 5
+          },
+          {
+            "modelName": "MODEL_Y",
+            "quality": 95.2,
+            "totalCycles": 177,
+            "goodCycles": 168,
+            "badCycles": 9
+          }
+        ]
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-quality?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&reworkExcluded=false",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-quality?stationId=1&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&reworkExcluded=true",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No quality data found for the specified station or date range"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "station quality",
+        "quality metrics",
+        "overall quality",
+        "modelwise quality",
+        "good cycles",
+        "bad cycles",
+        "quality distribution",
+        "rework excluded",
+        "manufacturing quality",
+        "production quality",
+        "quality analytics",
+        "cycle quality",
+        "If user want quality for a station then this API is best to use. This API will give you quality for a station with or without rework"
+      ],
+      "responseHints": [
+        "overallQuality (overall station quality percentage)",
+        "totalCycles (total processed cycles)",
+        "goodCycles (successful cycles count)",
+        "badCycles (failed cycles count)",
+        "modelwiseDistribution (model-wise quality breakdown)"
+      ]
+    },
+    {
+      "id": "get_performance_and_productivity",
+      "name": "Get Performance And Productivity",
+      "description": "Retrieves performance and productivity metrics for a specific station, including overall performance, overall productivity, and model-wise distribution of performance statistics such as cycles, capacity, and production targets.",
+      "method": "GET",
+      "path": "/bff/get-performance-and-productivity",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to retrieve performance and productivity metrics."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving performance and productivity data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving performance and productivity data."
+        }
+      ],
+      "responseExample": {
+        "overallPerformance": 96.77,
+        "overallProductivity": 92.45,
+        "modelwiseDistribution": [
+          {
+            "modelId": "991/992/6S2P",
+            "performance": 95.5,
+            "productivity": 91.2,
+            "cycles": 377,
+            "capacity": 500,
+            "target": 400
+          },
+          {
+            "modelId": "MODEL_X",
+            "performance": 97.8,
+            "productivity": 94.1,
+            "cycles": 420,
+            "capacity": 550,
+            "target": 450
+          }
+        ]
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-performance-and-productivity?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-performance-and-productivity?stationId=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No performance or productivity data found for the specified station or date range"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "station performance",
+        "station productivity",
+        "overall performance",
+        "overall productivity",
+        "modelwise performance",
+        "modelwise productivity",
+        "production performance",
+        "manufacturing productivity",
+        "cycle productivity",
+        "production target",
+        "capacity metrics",
+        "performance analytics",
+        "If user want performance for a station then this API is best to use. This API will give you performance for a station with or without rework"
+
+      ],
+      "responseHints": [
+        "overallPerformance (overall station performance percentage)",
+        "overallProductivity (overall station productivity percentage)",
+        "modelwiseDistribution (model-wise performance and productivity breakdown)",
+        "cycles (completed production cycles)",
+        "capacity (maximum production capacity)",
+        "target (expected production target)"
+      ]
+    },
+    {
+      "id": "get_oee_station_parameters",
+      "name": "Get OEE Station Parameters",
+      "description": "Retrieves OEE metrics and related station parameters, including availability, quality, performance, and overall OEE values for a specific station within a given time interval.",
+      "method": "GET",
+      "path": "/bff/get-oee-station-parameters",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to retrieve OEE metrics and parameters."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving OEE station parameters."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving OEE station parameters."
+        },
+        {
+          "name": "reworkExcluded",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If false, retrieves quality data for all cycles. If true, retrieves quality data only for non-reworked cycles."
+        }
+      ],
+      "responseExample": {
+        "oeeValue": 0.776,
+        "overallOeeVariables": {
+          "availability": 91.5,
+          "quality": 96.2,
+          "performance": 88.4,
+          "oee": 77.6
+        }
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-oee-station-parameters?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&reworkExcluded=false",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-oee-station-parameters?stationId=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&reworkExcluded=true",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No OEE data found for the specified station or date range"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "station oee",
+        "oee parameters",
+        "overall equipment effectiveness",
+        "availability",
+        "quality",
+        "performance",
+        "overall oee",
+        "station metrics",
+        "manufacturing analytics",
+        "production efficiency",
+        "oee analytics",
+        "rework excluded"
+      ],
+      "responseHints": [
+        "oeeValue (calculated OEE value)",
+        "availability (availability percentage)",
+        "quality (quality percentage)",
+        "performance (performance percentage)",
+        "overallOeeVariables (all OEE related metrics)"
+      ]
+    },
+    {
+      "id": "get_line_oee_report_data",
+      "name": "Get Line OEE Report Data",
+      "description": "Retrieves OEE reporting data for a production line and its stations. The API provides OEE trends distributed over time in daily, weekly, and monthly formats, including reference OEE values for comparison.",
+      "method": "GET",
+      "path": "/bff/get-line-oee-report-data",
+      "parameters": [
+        {
+          "name": "Line",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Line ID for which OEE reporting data is requested."
+        },
+        {
+          "name": "LineName",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Name of the production line."
+        },
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "array[integer]",
+          "required": false,
+          "description": "List of station IDs used to filter station-level OEE reporting data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving OEE reporting data."
+        }
+      ],
+      "responseExample": {
+        "lineId": 1,
+        "lineName": "Assembly Line 1",
+        "selectedDate": "2026-05-14T11:06:07.819Z",
+        "range": {
+          "startDate": "2026-05-01T00:00:00Z",
+          "to": "2026-05-31T23:59:59Z"
+        },
+        "lineOeeOverview": {
+          "daily": {
+            "range": "Last 7 Days",
+            "data": [
+              {
+                "date": "2026-05-10",
+                "week": "Week 19",
+                "month": "May",
+                "rangeLabel": "Day",
+                "oee": 84.5,
+                "referenceOee": 90
+              }
+            ]
+          },
+          "weekly": {
+            "range": "Last 4 Weeks",
+            "data": [
+              {
+                "date": "2026-W19",
+                "week": "Week 19",
+                "month": "May",
+                "rangeLabel": "Week",
+                "oee": 85.2,
+                "referenceOee": 90
+              }
+            ]
+          },
+          "monthly": {
+            "range": "Last 12 Months",
+            "data": [
+              {
+                "date": "2026-05",
+                "week": "",
+                "month": "May",
+                "rangeLabel": "Month",
+                "oee": 86.1,
+                "referenceOee": 90
+              }
+            ]
+          }
+        },
+        "stations": [
+          {
+            "stationId": 101,
+            "stationName": "Station A",
+            "oeeOverview": {
+              "daily": {
+                "range": "Last 7 Days",
+                "data": [
+                  {
+                    "date": "2026-05-10",
+                    "week": "Week 19",
+                    "month": "May",
+                    "rangeLabel": "Day",
+                    "oee": 83.4,
+                    "referenceOee": 88
+                  }
+                ]
+              },
+              "weekly": {
+                "range": "Last 4 Weeks",
+                "data": [
+                  {
+                    "date": "2026-W19",
+                    "week": "Week 19",
+                    "month": "May",
+                    "rangeLabel": "Week",
+                    "oee": 84.1,
+                    "referenceOee": 88
+                  }
+                ]
+              },
+              "monthly": {
+                "range": "Last 12 Months",
+                "data": [
+                  {
+                    "date": "2026-05",
+                    "week": "",
+                    "month": "May",
+                    "rangeLabel": "Month",
+                    "oee": 85.3,
+                    "referenceOee": 88
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101,102",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101&startDate=2026-05-01T00:00:00Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No OEE reporting data found for the specified line or stations"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "line oee report",
+        "oee reporting",
+        "line oee overview",
+        "station oee report",
+        "daily oee",
+        "weekly oee",
+        "monthly oee",
+        "oee trends",
+        "production line analytics",
+        "oee dashboard",
+        "reference oee",
+        "station oee overview",
+        "manufacturing reports",
+        "oee time series"
+      ],
+      "responseHints": [
+        "lineOeeOverview (overall line OEE trends)",
+        "daily (daily OEE spread)",
+        "weekly (weekly OEE spread)",
+        "monthly (monthly OEE spread)",
+        "stations (station-wise OEE reporting)",
+        "referenceOee (target/reference OEE value)",
+        "range (selected reporting date range)"
+      ]
+    },
+    {
+      "id": "get_busy_oee_station",
+      "name": "Get Busy OEE Station",
+      "description": "Retrieves busy OEE metrics for a specific station within a given time interval, including overall OEE values and related OEE variables such as availability, quality, and performance during busy operational periods.",
+      "method": "GET",
+      "path": "/bff/get-busy-oee-station",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to retrieve busy OEE metrics."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving busy OEE data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving busy OEE data."
+        }
+      ],
+      "responseExample": {
+        "oeeValue": 0.776,
+        "overallOeeVariables": {
+          "availability": 91.2,
+          "quality": 95.4,
+          "performance": 88.1,
+          "busyOee": 77.6
+        }
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-busy-oee-station?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-busy-oee-station?stationId=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No busy OEE data found for the specified station or date range"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "busy oee",
+        "station busy oee",
+        "overall equipment effectiveness",
+        "availability",
+        "quality",
+        "performance",
+        "busy station metrics",
+        "production efficiency",
+        "manufacturing analytics",
+        "station utilization",
+        "oee analytics",
+        "operational performance",
+        "This api will give use Busy OEE"
+      ],
+      "responseHints": [
+        "oeeValue (calculated busy OEE value)",
+        "availability (availability percentage during busy operation)",
+        "quality (quality percentage during busy operation)",
+        "performance (performance percentage during busy operation)",
+        "overallOeeVariables (all busy OEE related metrics)"
+      ]
+    },
+    {
+      "id": "get_busy_availability",
+      "name": "Get Busy Availability",
+      "description": "Retrieves busy availability metrics for a specific station, including busy operating time, availability percentage, aggregated availability parameters, overtime changes, and aggregation interval information.",
+      "method": "GET",
+      "path": "/bff/get-busy-availability",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to retrieve busy availability data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving busy availability data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving busy availability data."
+        }
+      ],
+      "responseExample": {
+        "time": 87500,
+        "percentage": 91.5,
+        "totalParameters": [
+          {
+            "name": "Busy Operating Time",
+            "value": 87500
+          },
+          {
+            "name": "Busy Stop Time",
+            "value": 1200
+          },
+          {
+            "name": "Busy Availability",
+            "value": 91.5
+          }
+        ],
+        "overTimeChanges": [
+          {
+            "name": "Busy Operating Time",
+            "value": 45000
+          },
+          {
+            "name": "Busy Stop Time",
+            "value": 600
+          }
+        ],
+        "lowestAggregator": 60
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-busy-availability?stationId=1",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-busy-availability?stationId=1&startDate=2026-05-01T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-busy-availability?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing station ID"
+        },
+        {
+          "code": 404,
+          "description": "No busy availability data found for the specified station"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "busy availability",
+        "station busy availability",
+        "availability metrics",
+        "busy operating time",
+        "busy stop time",
+        "station utilization",
+        "availability analytics",
+        "production monitoring",
+        "operational availability",
+        "busy station metrics",
+        "overtime changes",
+        "aggregated availability",
+        "This API will give Busy Availability"
+      ],
+      "responseHints": [
+        "time (total busy operating time)",
+        "percentage (busy availability percentage)",
+        "totalParameters (aggregated busy availability parameters)",
+        "overTimeChanges (time-based busy availability changes)",
+        "lowestAggregator (lowest aggregation interval in minutes)"
+      ]
+    },
+    {
+      "id": "get_kpi_summary_full_data",
+      "name": "Get KPI Summary Full Data",
+      "category": "oee",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for KPI dashboard/summary with actual vs reference comparison",
+        "Best for 'KPI summary', 'actual vs target', 'reference values'",
+        "Returns overAllOEE plus actAvailability/refAvailability etc.",
+        "Good for comparing performance against targets"
+      ],
+      "description": "Retrieves KPI summary data for stations and models, including actual and reference values for availability, quality, performance, overall OEE, and production quantity within a specified date range.",
+      "method": "GET",
+      "path": "/bff/kpi-summary-full-data",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated station IDs used to filter KPI summary data."
+        },
+        {
+          "name": "models",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated model IDs used to filter KPI summary data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving KPI summary data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time for retrieving KPI summary data."
+        },
+        {
+          "name": "reworkExcluded",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If false, retrieves quality data for all cycles. If true, retrieves quality data only for non-reworked cycles. Default value is true."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 101,
+          "modelId": "MODEL_X",
+          "overAllOEE": 82.5,
+          "refAvailability": 95,
+          "actAvailability": 91.2,
+          "refQuality": 98,
+          "actQuality": 96.4,
+          "refPerformance": 92,
+          "actPerformance": 88.7,
+          "quantity": 450
+        },
+        {
+          "stationId": 102,
+          "modelId": "MODEL_Y",
+          "overAllOEE": 84.1,
+          "refAvailability": 94,
+          "actAvailability": 92.3,
+          "refQuality": 97,
+          "actQuality": 95.8,
+          "refPerformance": 91,
+          "actPerformance": 89.5,
+          "quantity": 520
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101,102&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101,102&models=MODEL_X,MODEL_Y&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&reworkExcluded=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101&models=MODEL_X&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No KPI summary data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "kpi summary",
+        "kpi full data",
+        "overall oee",
+        "availability metrics",
+        "quality metrics",
+        "performance metrics",
+        "actual vs reference",
+        "production quantity",
+        "station kpi",
+        "model kpi",
+        "manufacturing analytics",
+        "production dashboard",
+        "oee summary",
+        "kpi analytics",
+        "this api has all models and stations OEE, availability, quality, performance and quantity data"
+
+      ],
+      "responseHints": [
+        "overAllOEE (overall equipment effectiveness value)",
+        "refAvailability (reference availability percentage)",
+        "actAvailability (actual availability percentage)",
+        "refQuality (reference quality percentage)",
+        "actQuality (actual quality percentage)",
+        "refPerformance (reference performance percentage)",
+        "actPerformance (actual performance percentage)",
+        "quantity (production quantity count)"
+      ]
+    }
+  ]
+}
