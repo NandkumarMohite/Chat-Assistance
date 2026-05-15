@@ -19,12 +19,12 @@
     "station level": ["single station", "specific station", "by station"]
   },
   "dateParamAliases": {
-    "from": ["from", "start", "startDate", "startInterval", "dateFrom"],
-    "to": ["to", "end", "endDate", "endInterval", "dateTo"]
+    "startDate": ["startDate", "start", "startDate", "startDate", "dateFrom"],
+    "to": ["endDate", "end", "endDate", "endDate", "dateTo"]
   },
   "routingConfig": {
     "confidenceThreshold": 0.7,
-    "enableTwoStageRouting": true,
+    "enableTwoStageRouting": false,
     "enableSynonymExpansion": true
   },
   "dependencyChains": [
@@ -128,18 +128,18 @@
           "name": "stationId",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Station ID to filter OEE parameters by."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
           "required": false,
           "description": "Get the station OEE parameters starting from this date/time."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
           "required": false,
@@ -193,11 +193,11 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-oee-parameters?stationId=1&from=2026-05-01T00:00:00Z",
+          "URL": "baseURL/bff/get-oee-parameters?stationId=1&startDate=2026-05-01T00:00:00Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-oee-parameters?stationId=1&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z",
+          "URL": "baseURL/bff/get-oee-parameters?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -215,7 +215,8 @@
         "station analytics",
         "overtime changes",
         "sum of failures",
-        "scheduled breaks"
+        "scheduled breaks",
+        "This api will give you Paramaters requird for calculating Availability like Planned Production time, Stop Threshold, and Operating Time"
       ],
       "responseHints": [
         "percentage (availability %)",
@@ -254,24 +255,24 @@
           "description": "Model identifier used to filter cycle data."
         },
         {
-          "name": "startInterval",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time of the interval for retrieving cycle aggregation data."
         },
         {
-          "name": "endInterval",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time of the interval for retrieving cycle aggregation data."
         },
         {
           "name": "aggLevel",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Aggregation level used for grouping cycle data (e.g. hourly, daily, weekly)."
         },
         {
@@ -319,15 +320,15 @@
       ],
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/time-between-cycles?startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-02T00:00:00Z&aggLevel=hourly",
+          "URL": "baseURL/bff/time-between-cycles?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z&aggLevel=hourly",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/time-between-cycles?stations=1,2&startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-02T00:00:00Z&aggLevel=daily&aggregate=true",
+          "URL": "baseURL/bff/time-between-cycles?stations=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z&aggLevel=daily&aggregate=true",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/time-between-cycles?stations=1&model=MODEL_A&startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-31T23:59:59Z&aggLevel=weekly&offset=0&limit=100",
+          "URL": "baseURL/bff/time-between-cycles?stations=1&model=MODEL_A&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=weekly&offset=0&limit=100",
           "method": "GET"
         }
       ],
@@ -371,7 +372,7 @@
       ]
     },
     {
-      "id": "get_overall_cycle_counts",
+      "id": "get_overall_cycle_counts", 
       "name": "Get Overall Cycle Counts",
       "category": "quality",
       "priority": 1,
@@ -393,17 +394,17 @@
           "description": "List of source IDs to retrieve overall cycle count data for."
         },
         {
-          "name": "startInterval",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time interval for retrieving cycle count aggregation data."
         },
         {
-          "name": "endInterval",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time interval for retrieving cycle count aggregation data."
         },
         {
@@ -446,15 +447,15 @@
       ],
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/cycle-overall-count?startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-02T00:00:00Z",
+          "URL": "baseURL/bff/cycle-overall-count?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/cycle-overall-count?stationIds=1,2&startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-31T23:59:59Z&aggregate=true",
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggregate=true",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startInterval=2026-05-10T00:00:00Z&endInterval=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
           "method": "GET"
         }
       ],
@@ -488,7 +489,8 @@
         "reference cycle time",
         "production monitoring",
         "total cycles",
-        "cycle quality"
+        "cycle quality",
+        "This api will give you cycle time for all stations and all models"
       ],
       "responseHints": [
         "ok_cycles (good/successful cycles)",
@@ -532,14 +534,14 @@
           "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time interval for retrieving cycle-time aggregation data."
         },
         {
           "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time interval for retrieving cycle-time aggregation data."
         },
         {
@@ -596,15 +598,15 @@
       ],
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/cycle-times?startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-02T00:00:00Z",
+          "URL": "baseURL/bff/cycle-times?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/cycle-times?stationIds=1,2&startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
+          "URL": "baseURL/bff/cycle-times?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startInterval=2026-05-10T00:00:00Z&endInterval=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
           "method": "GET"
         }
       ],
@@ -636,7 +638,8 @@
         "production performance",
         "max cycle time",
         "min cycle time",
-        "standard deviation"
+        "standard deviation",
+        "This Api will give how many cycle exceeded the reference cycle time for each model"
       ],
       "responseHints": [
         "duration (array of cycle times)",
@@ -674,14 +677,14 @@
           "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving cycle time metrics."
         },
         {
           "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving cycle time metrics."
         },
         {
@@ -748,7 +751,7 @@
             "maxCycleTime": 72,
             "minCycleTime": 38,
             "avgStd": 5,
-            "isLastStation": true,
+            "isLastStation": false,
             "refCycleTime": 45,
             "modelMetrics": [
               {
@@ -852,7 +855,8 @@
         "cycle exceed counts",
         "exceeded reference cycles",
         "station metrics",
-        "line metrics"
+        "line metrics",
+        "this API is Imp for getting the Cycle time for Plant, Lines, Stations and Models in a hierarchical way"
       ],
       "responseHints": [
         "plantAverageCycleTime (overall plant average)",
@@ -885,17 +889,17 @@
           "description": "Model identifier used to filter operation analysis data."
         },
         {
-          "name": "startInterval",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time interval for retrieving cycle operation analysis."
         },
         {
-          "name": "endInterval",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time interval for retrieving cycle operation analysis."
         },
         {
@@ -958,15 +962,15 @@
       ],
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/operations-analysis?startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-02T00:00:00Z",
+          "URL": "baseURL/bff/operations-analysis?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/operations-analysis?stationIds=1,2&startInterval=2026-05-01T00:00:00Z&endInterval=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
+          "URL": "baseURL/bff/operations-analysis?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/operations-analysis?stationIds=1&model=MODEL_A&startInterval=2026-05-10T00:00:00Z&endInterval=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/operations-analysis?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
           "method": "GET"
         }
       ],
@@ -1037,14 +1041,14 @@
           "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving OEE metrics."
         },
         {
           "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving OEE metrics."
         },
         {
@@ -1102,7 +1106,7 @@
             "availablity": 91,
             "performance": 89,
             "quality": 93,
-            "isLastStation": true,
+            "isLastStation": false,
             "modelMetrics": [
               {
                 "stationId": 102,
@@ -1198,7 +1202,8 @@
         "performance metrics",
         "quality metrics",
         "station metrics",
-        "line metrics"
+        "line metrics",
+        "This Api will give you OEE, availability, performance, and quality for Plant, Lines, Stations and Models in a hierarchical way (OEE, availability, performance, and quality)"
       ],
       "responseHints": [
         "overallOee (overall plant OEE)",
@@ -1231,28 +1236,28 @@
           "name": "stationId",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Station ID used to retrieve quality metrics."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving quality data."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving quality data."
         },
         {
           "name": "reworkExcluded",
           "in": "query",
           "type": "boolean",
-          "required": true,
+          "required": false,
           "description": "If false, retrieves quality for all cycles. If true, retrieves quality data only for non-reworked cycles."
         }
       ],
@@ -1280,11 +1285,11 @@
       },
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/get-quality?stationId=1&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z&reworkExcluded=false",
+          "URL": "baseURL/bff/get-quality?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&reworkExcluded=false",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-quality?stationId=1&from=2026-05-10T00:00:00Z&to=2026-05-10T23:59:59Z&reworkExcluded=true",
+          "URL": "baseURL/bff/get-quality?stationId=1&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&reworkExcluded=true",
           "method": "GET"
         }
       ],
@@ -1314,7 +1319,8 @@
         "manufacturing quality",
         "production quality",
         "quality analytics",
-        "cycle quality"
+        "cycle quality",
+        "If user want quality for a station then this API is best to use. This API will give you quality for a station with or without rework"
       ],
       "responseHints": [
         "overallQuality (overall station quality percentage)",
@@ -1335,21 +1341,21 @@
           "name": "stationId",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Station ID used to retrieve performance and productivity metrics."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving performance and productivity data."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving performance and productivity data."
         }
       ],
@@ -1377,11 +1383,11 @@
       },
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/get-performance-and-productivity?stationId=1&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z",
+          "URL": "baseURL/bff/get-performance-and-productivity?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-performance-and-productivity?stationId=5&from=2026-05-10T00:00:00Z&to=2026-05-10T23:59:59Z",
+          "URL": "baseURL/bff/get-performance-and-productivity?stationId=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -1411,7 +1417,9 @@
         "cycle productivity",
         "production target",
         "capacity metrics",
-        "performance analytics"
+        "performance analytics",
+        "If user want performance for a station then this API is best to use. This API will give you performance for a station with or without rework"
+
       ],
       "responseHints": [
         "overallPerformance (overall station performance percentage)",
@@ -1433,28 +1441,28 @@
           "name": "stationId",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Station ID used to retrieve OEE metrics and parameters."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving OEE station parameters."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving OEE station parameters."
         },
         {
           "name": "reworkExcluded",
           "in": "query",
           "type": "boolean",
-          "required": true,
+          "required": false,
           "description": "If false, retrieves quality data for all cycles. If true, retrieves quality data only for non-reworked cycles."
         }
       ],
@@ -1469,11 +1477,11 @@
       },
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/get-oee-station-parameters?stationId=1&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z&reworkExcluded=false",
+          "URL": "baseURL/bff/get-oee-station-parameters?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&reworkExcluded=false",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-oee-station-parameters?stationId=5&from=2026-05-10T00:00:00Z&to=2026-05-10T23:59:59Z&reworkExcluded=true",
+          "URL": "baseURL/bff/get-oee-station-parameters?stationId=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&reworkExcluded=true",
           "method": "GET"
         }
       ],
@@ -1524,14 +1532,14 @@
           "name": "Line",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Line ID for which OEE reporting data is requested."
         },
         {
           "name": "LineName",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Name of the production line."
         },
         {
@@ -1542,7 +1550,7 @@
           "description": "List of station IDs used to filter station-level OEE reporting data."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
           "required": false,
@@ -1554,7 +1562,7 @@
         "lineName": "Assembly Line 1",
         "selectedDate": "2026-05-14T11:06:07.819Z",
         "range": {
-          "from": "2026-05-01T00:00:00Z",
+          "startDate": "2026-05-01T00:00:00Z",
           "to": "2026-05-31T23:59:59Z"
         },
         "lineOeeOverview": {
@@ -1656,7 +1664,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101&from=2026-05-01T00:00:00Z",
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101&startDate=2026-05-01T00:00:00Z",
           "method": "GET"
         }
       ],
@@ -1711,21 +1719,21 @@
           "name": "stationId",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Station ID used to retrieve busy OEE metrics."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving busy OEE data."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving busy OEE data."
         }
       ],
@@ -1740,11 +1748,11 @@
       },
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/get-busy-oee-station?stationId=1&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z",
+          "URL": "baseURL/bff/get-busy-oee-station?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-busy-oee-station?stationId=5&from=2026-05-10T00:00:00Z&to=2026-05-10T23:59:59Z",
+          "URL": "baseURL/bff/get-busy-oee-station?stationId=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -1774,7 +1782,8 @@
         "manufacturing analytics",
         "station utilization",
         "oee analytics",
-        "operational performance"
+        "operational performance",
+        "This api will give use Busy OEE"
       ],
       "responseHints": [
         "oeeValue (calculated busy OEE value)",
@@ -1795,18 +1804,18 @@
           "name": "stationId",
           "in": "query",
           "type": "integer",
-          "required": true,
+          "required": false,
           "description": "Station ID used to retrieve busy availability data."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
           "required": false,
           "description": "Start date/time for retrieving busy availability data."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
           "required": false,
@@ -1848,11 +1857,11 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-busy-availability?stationId=1&from=2026-05-01T00:00:00Z",
+          "URL": "baseURL/bff/get-busy-availability?stationId=1&startDate=2026-05-01T00:00:00Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-busy-availability?stationId=1&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z",
+          "URL": "baseURL/bff/get-busy-availability?stationId=1&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -1882,7 +1891,8 @@
         "operational availability",
         "busy station metrics",
         "overtime changes",
-        "aggregated availability"
+        "aggregated availability",
+        "This API will give Busy Availability"
       ],
       "responseHints": [
         "time (total busy operating time)",
@@ -1911,7 +1921,7 @@
           "name": "stationIds",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Comma-separated station IDs used to filter KPI summary data."
         },
         {
@@ -1922,17 +1932,17 @@
           "description": "Comma-separated model IDs used to filter KPI summary data."
         },
         {
-          "name": "from",
+          "name": "startDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "Start date/time for retrieving KPI summary data."
         },
         {
-          "name": "to",
+          "name": "endDate",
           "in": "query",
           "type": "string",
-          "required": true,
+          "required": false,
           "description": "End date/time for retrieving KPI summary data."
         },
         {
@@ -1985,15 +1995,15 @@
       ],
       "possible_API_structure": [
         {
-          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101,102&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z",
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101,102&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101,102&models=MODEL_X,MODEL_Y&from=2026-05-01T00:00:00Z&to=2026-05-31T23:59:59Z&reworkExcluded=true",
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101,102&models=MODEL_X,MODEL_Y&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&reworkExcluded=true",
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101&models=MODEL_X&from=2026-05-10T00:00:00Z&to=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101&models=MODEL_X&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
           "method": "GET"
         }
       ],
@@ -2025,7 +2035,9 @@
         "manufacturing analytics",
         "production dashboard",
         "oee summary",
-        "kpi analytics"
+        "kpi analytics",
+        "this api has all models and stations OEE, availability, quality, performance and quantity data"
+
       ],
       "responseHints": [
         "overAllOEE (overall equipment effectiveness value)",
