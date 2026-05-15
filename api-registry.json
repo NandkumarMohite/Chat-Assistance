@@ -281,20 +281,6 @@
           "type": "boolean",
           "required": false,
           "description": "If true, returns aggregated cycle information. Default value is false."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Pagination offset for the result set."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Number of results per page. Maximum allowed value is 150."
         }
       ],
       "responseExample": [
@@ -328,7 +314,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/time-between-cycles?stations=1&model=MODEL_A&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=weekly&offset=0&limit=100",
+          "URL": "baseURL/bff/time-between-cycles?stations=1&model=MODEL_A&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=weekly",
           "method": "GET"
         }
       ],
@@ -413,20 +399,6 @@
           "type": "boolean",
           "required": false,
           "description": "If true, returns aggregated cycle count data. Default value is false."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Pagination offset for the result set."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Maximum number of results to return."
         }
       ],
       "responseExample": [
@@ -455,7 +427,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -557,20 +529,6 @@
           "type": "boolean",
           "required": false,
           "description": "If true, returns aggregated cycle-time data. Default value is false."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Pagination offset for the result set."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Maximum number of results to return."
         }
       ],
       "responseExample": [
@@ -606,7 +564,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -686,21 +644,8 @@
           "type": "string",
           "required": false,
           "description": "End date/time for retrieving cycle time metrics."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Page number for pagination."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Number of results per page. Maximum allowed value is 150."
         }
+
       ],
       "responseExample": {
         "plantAverageCycleTime": 52,
@@ -819,7 +764,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-tree-view-of-ct?stationIds=101&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/get-tree-view-of-ct?stationIds=101&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -915,20 +860,6 @@
           "type": "boolean",
           "required": false,
           "description": "If true, returns aggregated operation analysis data. Default value is false."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Pagination offset for the result set."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Maximum number of results to return."
         }
       ],
       "responseExample": [
@@ -970,7 +901,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/operations-analysis?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/operations-analysis?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -1050,20 +981,6 @@
           "type": "string",
           "required": false,
           "description": "End date/time for retrieving OEE metrics."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Page number for pagination."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Number of results per page. Maximum allowed value is 150."
         }
       ],
       "responseExample": {
@@ -1163,7 +1080,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/get-tree-view-of-oee-data?stationIds=101&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/get-tree-view-of-oee-data?stationIds=101&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
@@ -1951,20 +1868,6 @@
           "type": "boolean",
           "required": false,
           "description": "If false, retrieves quality data for all cycles. If true, retrieves quality data only for non-reworked cycles. Default value is true."
-        },
-        {
-          "name": "offset",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Page number for pagination. Default value is 0."
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Number of results per page. Maximum allowed value is 150. Default value is 150."
         }
       ],
       "responseExample": [
@@ -2003,7 +1906,7 @@
           "method": "GET"
         },
         {
-          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101&models=MODEL_X&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z&offset=0&limit=100",
+          "URL": "baseURL/bff/kpi-summary-full-data?stationIds=101&models=MODEL_X&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
           "method": "GET"
         }
       ],
