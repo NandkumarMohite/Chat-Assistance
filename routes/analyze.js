@@ -39,7 +39,7 @@ FORMAT:
 Do NOT add: explanations of what OEE is, tips to improve, general manufacturing advice.`;
 
 router.post('/', async (req, res) => {
-  const { question, data } = req.body;
+  const { question, data, analyzerModel } = req.body;
 
   if (!question || !data) {
     return res.status(400).json({ error: 'Both question and data are required' });
@@ -49,7 +49,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Data must be a non-empty array' });
   }
 
-  console.log(`[ANALYZE] Question: "${question}" | Data: ${data.length} rows`);
+  console.log(`[ANALYZE] Question: "${question}" | Data: ${data.length} rows | Model: ${analyzerModel || 'default'}`);
 
   try {
     const userPrompt = `DATA (${data.length} entries):
@@ -59,7 +59,7 @@ USER QUESTION: ${question}
 
 Analyze the data above and answer the question precisely.`;
 
-    const response = await callOllama(ANALYZE_PROMPT, userPrompt);
+    const response = await callOllama(ANALYZE_PROMPT, userPrompt, false, analyzerModel || null);
     const answer = response.content || 'No analysis result.';
 
     // Clean thinking tags if present

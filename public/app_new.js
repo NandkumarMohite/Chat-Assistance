@@ -8,7 +8,8 @@ const API_BASE = window.location.origin;
 // ── State ──
 let isStreaming = false;
 let conversation = [];
-let selectedModel = 'deepseek-r1';
+let selectedRouterModel = '';
+let selectedAnalyzerModel = '';
 let jwtToken = localStorage.getItem('comau_jwt') || null;
 
 // ── DOM refs ──
@@ -20,7 +21,8 @@ const statusPill = document.getElementById('statusPill');
 const statusText = statusPill.querySelector('.status-text');
 const backendPill = document.getElementById('backendPill');
 const backendText = backendPill.querySelector('.status-text');
-const modelSelect = document.getElementById('modelSelect');
+const routerModelDisplay = document.getElementById('routerModelDisplay');
+const analyzerModelDisplay = document.getElementById('analyzerModelDisplay');
 const welcomeScreen = document.getElementById('welcomeScreen');
 const historyList = document.getElementById('historyList');
 const queryChips = document.getElementById('queryChips');
@@ -84,13 +86,15 @@ async function checkHealth() {
 // ── Load available models ──
 async function loadModels() {
   try {
-    const res = await fetch(`${API_BASE}/api/models`);
+    const res = await fetch(`${API_BASE}/api/health`);
     const data = await res.json();
-    if (data.models && data.models.length > 0) {
-      modelSelect.innerHTML = data.models
-        .map(m => `<option value="${m.name}">${m.name}</option>`)
-        .join('');
-      selectedModel = data.models[0].name;
+    if (data.routerModel) {
+      selectedRouterModel = data.routerModel;
+      routerModelDisplay.textContent = data.routerModel;
+    }
+    if (data.analyzerModel) {
+      selectedAnalyzerModel = data.analyzerModel;
+      analyzerModelDisplay.textContent = data.analyzerModel;
     }
   } catch { /* keep defaults */ }
 }
@@ -111,11 +115,6 @@ function setupEventListeners() {
     charCount.textContent = `${len}/2000`;
     sendBtn.disabled = len === 0 || isStreaming;
     autoResize(messageInput);
-  });
-
-  modelSelect.addEventListener('change', () => {
-    selectedModel = modelSelect.value;
-    headerSubtitle.textContent = `Using model: ${selectedModel}`;
   });
 
   newChatBtn.addEventListener('click', clearChat);
@@ -221,7 +220,7 @@ async function sendMessage() {
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, conversationHistory: conversation, model: selectedModel, jwtToken, clientTimeZone })
+      body: JSON.stringify({ message: text, conversationHistory: conversation, routerModel: selectedRouterModel, analyzerModel: selectedAnalyzerModel, jwtToken, clientTimeZone })
     });
 
     if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -668,7 +667,8 @@ function setupChartBlock(container, rows) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: currentChartData,
-          preferredType: null // Let AI decide
+          preferredType: null, // Let AI decide
+          analyzerModel: selectedAnalyzerModel
         })
       });
       
@@ -722,7 +722,8 @@ function setupChartBlock(container, rows) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             data: currentChartData,
-            preferredType: selectedType
+            preferredType: selectedType,
+            analyzerModel: selectedAnalyzerModel
           })
         });
         
@@ -821,7 +822,7 @@ function setupAnalyzeBlock(container, rows, metadata = null) {
       const response = await fetch(`${API_BASE}/api/analyze-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, data: rows })
+        body: JSON.stringify({ question, data: rows, analyzerModel: selectedAnalyzerModel })
       });
 
       const result = await response.json();
@@ -870,7 +871,8 @@ function setupAnalyzeBlock(container, rows, metadata = null) {
             queryParams: metadata.queryParams || {},
             userMessage: messageInput.value || 'Compare data',
             jwtToken: jwtToken,
-            clientTimeZone
+            clientTimeZone,
+            analyzerModel: selectedAnalyzerModel
           })
         });
 

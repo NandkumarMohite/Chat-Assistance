@@ -3,12 +3,14 @@
 // ─────────────────────────────────────────────
 
 const fetch = require('node-fetch');
-const { OLLAMA_BASE_URL, OLLAMA_MODEL } = require('./config');
+const { OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_ROUTER_MODEL, OLLAMA_ANALYZER_MODEL } = require('./config');
 
 // ── Call Ollama (non-streaming) ───────────────
-async function callOllama(systemPrompt, userMessage, enableThink = false) {
+// modelOverride: pass a specific model name, or use the default OLLAMA_MODEL
+async function callOllama(systemPrompt, userMessage, enableThink = false, modelOverride = null) {
+  const model = modelOverride || OLLAMA_MODEL;
   const body = {
-    model: OLLAMA_MODEL,
+    model,
     stream: false,
     messages: [
       { role: 'system', content: systemPrompt },

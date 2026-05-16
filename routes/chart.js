@@ -40,7 +40,7 @@ RULES:
 const COLORS = ['#4F46E5', '#7C3AED', '#2563EB', '#0891B2', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
 
 router.post('/', async (req, res) => {
-  const { data, preferredType } = req.body;
+  const { data, preferredType, analyzerModel } = req.body;
 
   if (!data || !Array.isArray(data) || data.length === 0) {
     return res.status(400).json({ error: 'Data array is required' });
@@ -66,7 +66,7 @@ SAMPLE ROW: ${JSON.stringify(sampleRow)}
 
 Which chart type is best for visualizing this data?`;
 
-    const response = await callOllama(CHART_PROMPT, userPrompt);
+    const response = await callOllama(CHART_PROMPT, userPrompt, false, analyzerModel || null);
     const content = response.content || '';
     
     // Parse simple response format

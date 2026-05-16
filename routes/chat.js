@@ -65,7 +65,7 @@ function buildApiUrl(baseUrl, apiPath, pathParams = {}, queryParams = {}) {
 // Just add your new API config into `api-registry.json` and the AI will handle the rest!
 
 router.post('/', async (req, res) => {
-  const { message, conversationHistory = [], jwtToken, clientTimeZone } = req.body;
+  const { message, conversationHistory = [], jwtToken, clientTimeZone, routerModel, analyzerModel } = req.body;
   const timeZone = clientTimeZone || 'UTC';
   console.log(`[CHAT REQUEST] Message: "${message}"`);
   console.log(`[CHAT REQUEST] JWT Token from frontend:`, jwtToken ? jwtToken.substring(0, 20) + '...' : 'NULL or UNDEFINED');
@@ -107,8 +107,10 @@ router.post('/', async (req, res) => {
     const classifyResult = await callOllama(
       buildClassifyPrompt(buildAPIDescription(), chainDescriptions, routingConfig),
       expandedMessage,
-      false
+      false,
+      routerModel || null
     );
+    console.log(`[ROUTING] Using router model: ${routerModel || 'default'}`);
 
     let requiresAPI = false;
     let apiPlan = null;
@@ -283,7 +285,8 @@ router.post('/', async (req, res) => {
       ? buildInterpretPrompt(message, apiResults)
       : buildGeneralPrompt(message, conversationHistory);
 
-    const interpretResult = await callOllama(interpretPrompt, '', false);
+    console.log(`[INTERPRET] Using analyzer model: ${analyzerModel || 'default'}`);
+    const interpretResult = await callOllama(interpretPrompt, '', false, analyzerModel || null);
 
     if (interpretResult.thinking) {
       send('thinking', { content: interpretResult.thinking });
@@ -311,7 +314,7 @@ router.post('/', async (req, res) => {
 // POST /api/compare-period — Period-over-period comparison
 // ─────────────────────────────────────────────
 router.post('/compare-period', async (req, res) => {
-  const { apiId, pathParams = {}, queryParams = {}, userMessage, jwtToken, clientTimeZone } = req.body;
+  const { apiId, pathParams = {}, queryParams = {}, userMessage, jwtToken, clientTimeZone, analyzerModel } = req.body;
   const timeZone = clientTimeZone || 'UTC';
 
   console.log(`[COMPARE-PERIOD] API: ${apiId}, Params:`, queryParams);
@@ -410,7 +413,7 @@ router.post('/compare-period', async (req, res) => {
     );
 
     // Call Ollama for analysis
-    const analysisResult = await callOllama(comparisonPrompt, '', false);
+    const analysisResult = await callOllama(comparisonPrompt, '', false, analyzerModel || null);
 
     res.json({
       success: true,

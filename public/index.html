@@ -53,16 +53,16 @@
         New Chat
       </button>
 
-      <!-- Model selector -->
+      <!-- Model info (read-only) -->
       <div class="sidebar-section">
-        <div class="section-label">Model</div>
-        <div class="model-select-wrap">
-          <select id="modelSelect" class="model-select">
-            <option value="deepseek-r1">deepseek-r1 (thinking)</option>
-            <option value="qwen3">qwen3 (thinking)</option>
-            <option value="llama3.2">llama3.2</option>
-            <option value="mistral">mistral</option>
-          </select>
+        <div class="section-label">Models</div>
+        <div class="model-info-row">
+          <span class="model-info-label">🧭 Router</span>
+          <span class="model-info-value" id="routerModelDisplay">—</span>
+        </div>
+        <div class="model-info-row" style="margin-top: 6px;">
+          <span class="model-info-label">🧠 Analyzer</span>
+          <span class="model-info-value" id="analyzerModelDisplay">—</span>
         </div>
       </div>
 

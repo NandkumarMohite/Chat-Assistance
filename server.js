@@ -44,16 +44,18 @@ app.use('/api/chart-config', require('./routes/chart'));
 app.use('/api/analyze-data', require('./routes/analyze'));
 
 // ── Start server ─────────────────────────────
-const { OLLAMA_BASE_URL, OLLAMA_MODEL } = require('./core/config');
+const { OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_ROUTER_MODEL, OLLAMA_ANALYZER_MODEL } = require('./core/config');
 const { getRegistry } = require('./core/registry');
 
 app.listen(PORT, () => {
   const registry = getRegistry();
   console.log(`\n🚀 Ollama Chat AI Server running at http://localhost:${PORT}`);
   console.log(`📡 Connected to Ollama at: ${OLLAMA_BASE_URL}`);
-  console.log(`🤖 Using model: ${OLLAMA_MODEL}`);
+  console.log(`🤖 Default model: ${OLLAMA_MODEL}`);
+  console.log(`🧭 Router model:  ${OLLAMA_ROUTER_MODEL}`);
+  console.log(`🧠 Analyzer model: ${OLLAMA_ANALYZER_MODEL}`);
   console.log(`🏪 Backend API: ${registry.baseUrl}`);
   console.log(`📋 Registered APIs: ${registry.apis.length} endpoints`);
-  console.log(`\n💡 To change model: set OLLAMA_MODEL env variable`);
-  console.log(`   Example: OLLAMA_MODEL=qwen3 node server.js\n`);
+  console.log(`\n💡 To change models: set OLLAMA_ROUTER_MODEL / OLLAMA_ANALYZER_MODEL env variables`);
+  console.log(`   Example: OLLAMA_ROUTER_MODEL=qwen2.5-coder:3b OLLAMA_ANALYZER_MODEL=qwen3 node server.js\n`);
 });

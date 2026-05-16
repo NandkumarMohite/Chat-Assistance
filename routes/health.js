@@ -6,7 +6,7 @@ const express = require('express');
 const fetch   = require('node-fetch');
 const router  = express.Router();
 
-const { OLLAMA_BASE_URL, OLLAMA_MODEL, BACKEND_URL } = require('../core/config');
+const { OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_ROUTER_MODEL, OLLAMA_ANALYZER_MODEL, BACKEND_URL } = require('../core/config');
 const { getRegistry }                   = require('../core/registry');
 
 router.get('/', async (req, res) => {
@@ -33,6 +33,8 @@ router.get('/', async (req, res) => {
     backend:        backendStatus,
     backendUrl:     registry.baseUrl,
     model:          OLLAMA_MODEL,
+    routerModel:    OLLAMA_ROUTER_MODEL,
+    analyzerModel:  OLLAMA_ANALYZER_MODEL,
     registeredAPIs: registry.apis.length,
     availableModels,
   });
