@@ -332,8 +332,13 @@ router.post('/compare-period', async (req, res) => {
 
     // Detect date parameter keys in queryParams
     const dateKeys = ['from', 'to', 'start', 'end', 'startDate', 'endDate', 'dateFrom', 'dateTo'];
-    const fromKey = dateKeys.find(k => queryParams[k] && k.includes('from') || k === 'start' || k === 'startDate');
-    const toKey = dateKeys.find(k => queryParams[k] && (k.includes('to') || k === 'end' || k === 'endDate'));
+    const fromKeys = ['from', 'start', 'startDate', 'dateFrom'];
+    const toKeys = ['to', 'end', 'endDate', 'dateTo'];
+    const fromKey = fromKeys.find(k => queryParams[k] !== undefined && queryParams[k] !== null && queryParams[k] !== '');
+    const toKey = toKeys.find(k => queryParams[k] !== undefined && queryParams[k] !== null && queryParams[k] !== '');
+
+    console.log(`[COMPARE-PERIOD] fromKey=${fromKey} (${queryParams[fromKey]}), toKey=${toKey} (${queryParams[toKey]})`);
+    console.log(`[COMPARE-PERIOD] All queryParams:`, JSON.stringify(queryParams));
 
     if (!fromKey || !toKey) {
       return res.status(400).json({ 
@@ -345,8 +350,22 @@ router.post('/compare-period', async (req, res) => {
     const currentFrom = queryParams[fromKey];
     const currentTo = queryParams[toKey];
 
+    if (!currentFrom || !currentTo) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Date values are empty. fromKey=${fromKey} value=${currentFrom}, toKey=${toKey} value=${currentTo}` 
+      });
+    }
+
     // Calculate previous period
     const prevPeriod = calculatePreviousPeriod(currentFrom, currentTo, timeZone);
+
+    if (!prevPeriod || !prevPeriod.from || !prevPeriod.to) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Could not calculate previous period from "${currentFrom}" to "${currentTo}"` 
+      });
+    }
 
     // Build API URLs for both periods
     const currentUrl = buildApiUrl(registry.baseUrl, apiDef.path, pathParams, queryParams);

@@ -861,7 +861,7 @@ function setupAnalyzeBlock(container, rows, metadata = null) {
 
       try {
         const clientTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-        const response = await fetch(`${API_BASE}/api/compare-period`, {
+        const response = await fetch(`${API_BASE}/api/chat/compare-period`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -874,9 +874,27 @@ function setupAnalyzeBlock(container, rows, metadata = null) {
           })
         });
 
+        if (!response.ok) {
+          // Try to parse error message from JSON response
+          let errorMsg = `Server error: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+          } catch {
+            // If not JSON, try to get text (might be HTML error page)
+            const text = await response.text();
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+              errorMsg = `Server returned HTML instead of JSON. Check server logs for errors.`;
+            } else {
+              errorMsg = text.substring(0, 200);
+            }
+          }
+          throw new Error(errorMsg);
+        }
+
         const result = await response.json();
 
-        if (!response.ok || !result.success) {
+        if (!result.success) {
           throw new Error(result.error || 'Comparison failed');
         }
 
