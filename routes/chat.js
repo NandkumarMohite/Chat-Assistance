@@ -239,7 +239,18 @@ router.post('/', async (req, res) => {
           apiResults.push({ apiId: call.apiId, name: apiDef.name, data: resultArray });
           apiCallsMade.push(apiCallInfo);
 
-          send('data', { rows: resultArray, count: resultArray.length, apiName: apiDef.name });
+          // Send data with API metadata for period comparison feature
+          send('data', { 
+            rows: resultArray, 
+            count: resultArray.length, 
+            apiName: apiDef.name,
+            // Store API call info for frontend to reuse in period comparison
+            metadata: {
+              apiId: call.apiId,
+              pathParams: call.pathParams || {},
+              queryParams: resolvedQueryParams || {}
+            }
+          });
 
         } catch (apiErr) {
           if (apiErr.message === 'UNAUTHORIZED_OR_FORBIDDEN') {
@@ -284,6 +295,109 @@ router.post('/', async (req, res) => {
     send('error', { message: err.message || 'An unexpected error occurred.' });
   } finally {
     res.end();
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/compare-period — Period-over-period comparison
+// ─────────────────────────────────────────────
+router.post('/compare-period', async (req, res) => {
+  const { apiId, pathParams = {}, queryParams = {}, userMessage, jwtToken, clientTimeZone } = req.body;
+  const timeZone = clientTimeZone || 'UTC';
+
+  console.log(`[COMPARE-PERIOD] API: ${apiId}, Params:`, queryParams);
+
+  if (!apiId) {
+    return res.status(400).json({ success: false, error: 'apiId is required' });
+  }
+
+  try {
+    const registry = getRegistry();
+    const { calculatePreviousPeriod } = require('../core/dateRange');
+    const { buildComparisonPrompt } = require('../core/prompts');
+
+    const apiDef = registry.apis.find(a => a.id === apiId);
+    if (!apiDef) {
+      return res.status(404).json({ success: false, error: `API ${apiId} not found in registry` });
+    }
+
+    // Detect date parameter keys in queryParams
+    const dateKeys = ['from', 'to', 'start', 'end', 'startDate', 'endDate', 'dateFrom', 'dateTo'];
+    const fromKey = dateKeys.find(k => queryParams[k] && k.includes('from') || k === 'start' || k === 'startDate');
+    const toKey = dateKeys.find(k => queryParams[k] && (k.includes('to') || k === 'end' || k === 'endDate'));
+
+    if (!fromKey || !toKey) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Date range parameters (from/to or start/end) are required for period comparison' 
+      });
+    }
+
+    const currentFrom = queryParams[fromKey];
+    const currentTo = queryParams[toKey];
+
+    // Calculate previous period
+    const prevPeriod = calculatePreviousPeriod(currentFrom, currentTo, timeZone);
+
+    // Build API URLs for both periods
+    const currentUrl = buildApiUrl(registry.baseUrl, apiDef.path, pathParams, queryParams);
+    const prevQueryParams = { ...queryParams, [fromKey]: prevPeriod.from, [toKey]: prevPeriod.to };
+    const prevUrl = buildApiUrl(registry.baseUrl, apiDef.path, pathParams, prevQueryParams);
+
+    console.log(`[COMPARE-PERIOD] Current: ${currentFrom} to ${currentTo}`);
+    console.log(`[COMPARE-PERIOD] Previous: ${prevPeriod.from} to ${prevPeriod.to} (${prevPeriod.duration})`);
+
+    // Call API for both periods
+    let currentData, previousData;
+
+    if (TEST_LOCALLY) {
+      // In test mode, use mock data (same for both periods - in real scenario these would differ)
+      currentData = getMockResponse(apiId);
+      previousData = getMockResponse(apiId);
+      console.log(`[COMPARE-PERIOD] Using mock data for both periods`);
+    } else {
+      const currentCall = { apiId, name: apiDef.name, method: apiDef.method, url: currentUrl, body: null };
+      const prevCall = { apiId, name: apiDef.name, method: apiDef.method, url: prevUrl, body: null };
+
+      [currentData, previousData] = await Promise.all([
+        executeAPICall(currentCall, jwtToken),
+        executeAPICall(prevCall, jwtToken)
+      ]);
+    }
+
+    // Normalize to arrays
+    const currentArray = Array.isArray(currentData) ? currentData : [currentData];
+    const prevArray = Array.isArray(previousData) ? previousData : [previousData];
+
+    // Build comparison prompt
+    const comparisonPrompt = buildComparisonPrompt(
+      userMessage || 'Compare data',
+      currentArray,
+      prevArray,
+      {
+        current: { from: currentFrom, to: currentTo },
+        previous: { from: prevPeriod.from, to: prevPeriod.to },
+        duration: prevPeriod.duration
+      }
+    );
+
+    // Call Ollama for analysis
+    const analysisResult = await callOllama(comparisonPrompt, '', false);
+
+    res.json({
+      success: true,
+      analysis: analysisResult.content,
+      thinking: analysisResult.thinking || null,
+      periods: {
+        current: { from: currentFrom, to: currentTo, recordCount: currentArray.length },
+        previous: { from: prevPeriod.from, to: prevPeriod.to, recordCount: prevArray.length },
+        duration: prevPeriod.duration
+      }
+    });
+
+  } catch (err) {
+    console.error('[COMPARE-PERIOD] Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Comparison failed' });
   }
 });
 

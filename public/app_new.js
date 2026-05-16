@@ -311,7 +311,7 @@ async function sendMessage() {
           renderTable(dataBlock, data.rows);
           renderRawJson(dataBlock, data.rows);
           setupChartBlock(dataBlock, data.rows);
-          setupAnalyzeBlock(dataBlock, data.rows);
+          setupAnalyzeBlock(dataBlock, data.rows, data.metadata); // Pass metadata for period comparison
           dataCount.textContent = `${data.count} record${data.count !== 1 ? 's' : ''} returned${data.apiName ? ` · ${data.apiName}` : ''}`;
           dataBlock.removeAttribute('hidden');
         }
@@ -754,7 +754,7 @@ function capitalizeFirst(str) {
 }
 
 // ── Analyze Data Block (follow-up questions on data) ──
-function setupAnalyzeBlock(container, rows) {
+function setupAnalyzeBlock(container, rows, metadata = null) {
   const analyzeBlock = container.querySelector('.analyze-block');
   if (!analyzeBlock) return;
 
@@ -765,13 +765,37 @@ function setupAnalyzeBlock(container, rows) {
   const analyzeSendBtn = analyzeBlock.querySelector('.analyze-send-btn');
   const analyzeLoading = analyzeBlock.querySelector('.analyze-loading');
   const analyzeResult = analyzeBlock.querySelector('.analyze-result');
+  
+  // Period comparison elements
+  const comparePeriodSection = analyzeBlock.querySelector('.compare-period-section');
+  const comparePeriodBtn = analyzeBlock.querySelector('.compare-period-btn');
+  const compareLoading = analyzeBlock.querySelector('.compare-loading');
+  const compareResult = analyzeBlock.querySelector('.compare-result');
+
+  // Show/hide comparison button based on metadata availability
+  if (metadata && metadata.apiId && metadata.queryParams && hasDateParams(metadata.queryParams)) {
+    comparePeriodSection.removeAttribute('hidden');
+  } else if (comparePeriodSection) {
+    comparePeriodSection.setAttribute('hidden', '');
+  }
+
+  function hasDateParams(params) {
+    const dateKeys = ['from', 'to', 'start', 'end', 'startDate', 'endDate', 'dateFrom', 'dateTo'];
+    return dateKeys.some(key => params[key]);
+  }
 
   async function runAnalysis(question) {
     if (!question.trim()) return;
 
+    // Disable controls during analysis
+    analyzeSendBtn.disabled = true;
+    analyzeInput.disabled = true;
+    quickBtns.forEach(btn => btn.disabled = true);
+
     analyzeLoading.removeAttribute('hidden');
     analyzeResult.setAttribute('hidden', '');
     analyzeResult.innerHTML = '';
+    analyzeLoading.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     try {
       const response = await fetch(`${API_BASE}/api/analyze-data`, {
@@ -793,8 +817,71 @@ function setupAnalyzeBlock(container, rows) {
       analyzeResult.removeAttribute('hidden');
     } finally {
       analyzeLoading.setAttribute('hidden', '');
-      scrollToBottom();
+      analyzeSendBtn.disabled = false;
+      analyzeInput.disabled = false;
+      quickBtns.forEach(btn => btn.disabled = false);
+      analyzeResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+  }
+
+  // Period comparison handler
+  if (comparePeriodBtn) {
+    comparePeriodBtn.addEventListener('click', async () => {
+      if (!metadata || !metadata.apiId) {
+        compareResult.innerHTML = `<div class="error-bubble">⚠️ No API metadata available for comparison</div>`;
+        compareResult.removeAttribute('hidden');
+        return;
+      }
+
+      comparePeriodBtn.disabled = true;
+      compareLoading.removeAttribute('hidden');
+      compareResult.setAttribute('hidden', '');
+      compareResult.innerHTML = '';
+      compareLoading.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      try {
+        const clientTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const response = await fetch(`${API_BASE}/api/compare-period`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            apiId: metadata.apiId,
+            pathParams: metadata.pathParams || {},
+            queryParams: metadata.queryParams || {},
+            userMessage: messageInput.value || 'Compare data',
+            jwtToken: jwtToken,
+            clientTimeZone
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Comparison failed');
+        }
+
+        let html = markdownToHtml(result.analysis);
+        
+        // Add period info badge
+        if (result.periods) {
+          const badge = `<div style="font-size: 0.75rem; color: #667eea; margin-bottom: 8px; padding: 6px 10px; background: rgba(102,126,234,0.1); border-radius: 6px; display: inline-block;">
+            <strong>Current:</strong> ${result.periods.current.from.split('T')[0]} to ${result.periods.current.to.split('T')[0]} (${result.periods.current.recordCount} records) | 
+            <strong>Previous:</strong> ${result.periods.previous.from.split('T')[0]} to ${result.periods.previous.to.split('T')[0]} (${result.periods.previous.recordCount} records)
+          </div>`;
+          html = badge + html;
+        }
+
+        compareResult.innerHTML = html;
+        compareResult.removeAttribute('hidden');
+      } catch (error) {
+        compareResult.innerHTML = `<div class="error-bubble">⚠️ ${escHtml(error.message)}</div>`;
+        compareResult.removeAttribute('hidden');
+      } finally {
+        compareLoading.setAttribute('hidden', '');
+        comparePeriodBtn.disabled = false;
+        compareResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
   }
 
   // Quick analysis buttons

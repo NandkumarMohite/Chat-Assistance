@@ -233,4 +233,57 @@ function resolveTemporalQueryParams(queryParams, timeZone = 'UTC') {
   return normalized;
 }
 
-module.exports = { resolveTemporalQueryParams };
+/**
+ * Calculate the previous period for period-over-period comparison.
+ * Given a date range (from, to), returns the equivalent previous period.
+ * 
+ * Example:
+ *   Input: from=2026-05-01, to=2026-05-15 (15 days)
+ *   Output: from=2026-04-16, to=2026-05-01 (same 15 days, shifted back)
+ * 
+ * @param {string} fromISO - ISO date string for start of current period
+ * @param {string} toISO - ISO date string for end of current period
+ * @param {string} zone - Timezone (default: UTC)
+ * @returns {object} { from, to, duration } - Previous period dates + duration info
+ */
+function calculatePreviousPeriod(fromISO, toISO, zone = 'UTC') {
+  if (!fromISO || !toISO) {
+    throw new Error('Both from and to dates are required for period comparison');
+  }
+
+  const fromDt = DateTime.fromISO(fromISO, { zone });
+  const toDt = DateTime.fromISO(toISO, { zone });
+
+  if (!fromDt.isValid || !toDt.isValid) {
+    throw new Error(`Invalid date format: from=${fromISO}, to=${toISO}`);
+  }
+
+  // Calculate duration in milliseconds
+  const durationMs = toDt.toMillis() - fromDt.toMillis();
+  
+  if (durationMs <= 0) {
+    throw new Error('End date must be after start date');
+  }
+
+  // Calculate previous period: shift both dates back by the duration
+  const prevFrom = fromDt.minus({ milliseconds: durationMs });
+  const prevTo = fromDt; // Previous period ends where current period starts
+
+  // Calculate human-readable duration
+  const diff = toDt.diff(fromDt, ['days', 'hours']).toObject();
+  let durationStr;
+  if (diff.days >= 1) {
+    durationStr = `${Math.round(diff.days)} day${Math.round(diff.days) !== 1 ? 's' : ''}`;
+  } else {
+    durationStr = `${Math.round(diff.hours || 0)} hour${Math.round(diff.hours || 0) !== 1 ? 's' : ''}`;
+  }
+
+  return {
+    from: prevFrom.toUTC().toISO(),
+    to: prevTo.toUTC().toISO(),
+    duration: durationStr,
+    durationMs
+  };
+}
+
+module.exports = { resolveTemporalQueryParams, calculatePreviousPeriod };
