@@ -308,6 +308,7 @@ async function sendMessage() {
 
       case 'data':
         if (data.rows && data.rows.length > 0) {
+          console.log('📊 Received data event with metadata:', data.metadata);
           renderTable(dataBlock, data.rows);
           renderRawJson(dataBlock, data.rows);
           setupChartBlock(dataBlock, data.rows);
@@ -773,15 +774,34 @@ function setupAnalyzeBlock(container, rows, metadata = null) {
   const compareResult = analyzeBlock.querySelector('.compare-result');
 
   // Show/hide comparison button based on metadata availability
-  if (metadata && metadata.apiId && metadata.queryParams && hasDateParams(metadata.queryParams)) {
-    comparePeriodSection.removeAttribute('hidden');
-  } else if (comparePeriodSection) {
-    comparePeriodSection.setAttribute('hidden', '');
-  }
-
   function hasDateParams(params) {
     const dateKeys = ['from', 'to', 'start', 'end', 'startDate', 'endDate', 'dateFrom', 'dateTo'];
-    return dateKeys.some(key => params[key]);
+    const found = dateKeys.filter(key => params[key] !== undefined && params[key] !== null && params[key] !== '');
+    console.log('🔍 Period Comparison Check:', {
+      hasMetadata: !!metadata,
+      apiId: metadata?.apiId,
+      pathParams: metadata?.pathParams,
+      queryParams: metadata?.queryParams,
+      dateParamsFound: found,
+      willShow: found.length > 0
+    });
+    return found.length > 0;
+  }
+
+  // Check both queryParams and pathParams for date parameters
+  const allParams = {
+    ...(metadata?.pathParams || {}),
+    ...(metadata?.queryParams || {})
+  };
+  
+  if (metadata && metadata.apiId && hasDateParams(allParams)) {
+    console.log('✅ Showing period comparison button');
+    comparePeriodSection.removeAttribute('hidden');
+  } else {
+    console.log('❌ Hiding period comparison button - metadata:', metadata);
+    if (comparePeriodSection) {
+      comparePeriodSection.setAttribute('hidden', '');
+    }
   }
 
   async function runAnalysis(question) {

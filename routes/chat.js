@@ -123,6 +123,9 @@ router.post('/', async (req, res) => {
         console.log(`[ROUTING] Confidence: ${((apiPlan.confidence ?? 1) * 100).toFixed(0)}%`);
         console.log(`[ROUTING] Intent Category: ${apiPlan.intentCategory || 'unknown'}`);
         console.log(`[ROUTING] API: ${apiPlan.apiId || apiPlan.chainId || 'none'}`);
+        if (apiPlan.calls && apiPlan.calls.length > 0) {
+          console.log(`[ROUTING] Query Params from LLM:`, JSON.stringify(apiPlan.calls[0].queryParams, null, 2));
+        }
       }
     } catch {
       // Fallback: keyword match
@@ -208,6 +211,9 @@ router.post('/', async (req, res) => {
         
         // Resolve temporal values (yesterday, last week, etc.)
         const resolvedQueryParams = resolveTemporalQueryParams(normalizedApiParams, timeZone);
+        console.log(`[DATE RESOLUTION] Before:`, normalizedApiParams);
+        console.log(`[DATE RESOLUTION] After:`, resolvedQueryParams);
+        console.log(`[DATE RESOLUTION] Has date params:`, Object.keys(resolvedQueryParams).filter(k => ['from', 'to', 'start', 'end', 'startDate', 'endDate', 'dateFrom', 'dateTo'].includes(k)));
         const fullUrl = buildApiUrl(registry.baseUrl, apiDef.path, call.pathParams, resolvedQueryParams);
 
         const apiCallInfo = { apiId: call.apiId, name: apiDef.name, method: apiDef.method, url: fullUrl, body: call.requestBody || null };
@@ -240,16 +246,19 @@ router.post('/', async (req, res) => {
           apiCallsMade.push(apiCallInfo);
 
           // Send data with API metadata for period comparison feature
+          const metadata = {
+            apiId: call.apiId,
+            pathParams: call.pathParams || {},
+            queryParams: resolvedQueryParams || {}
+          };
+          console.log(`[METADATA] Sending to frontend:`, JSON.stringify(metadata, null, 2));
+          
           send('data', { 
             rows: resultArray, 
             count: resultArray.length, 
             apiName: apiDef.name,
             // Store API call info for frontend to reuse in period comparison
-            metadata: {
-              apiId: call.apiId,
-              pathParams: call.pathParams || {},
-              queryParams: resolvedQueryParams || {}
-            }
+            metadata
           });
 
         } catch (apiErr) {
