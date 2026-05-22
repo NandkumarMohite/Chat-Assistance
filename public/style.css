@@ -212,7 +212,13 @@ body {
 .sidebar.collapsed {
   width: 0;
   min-width: 0;
+  overflow: hidden;
 }
+
+.sidebar.collapsed ~ .chat-main .mobile-menu-btn {
+  display: grid;
+}
+
 
 .sidebar-header {
   display: flex;

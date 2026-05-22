@@ -14,6 +14,12 @@ docker-compose up -d
 
 # 2. Pull the AI model (required once)
 docker exec -it ollama-service ollama pull qwen2.5-coder:3b
+
+# 3. Remove
+docker exec ollama-service ollama rm <model-name>
+
+# 4. Check All
+docker exec ollama-service ollama list
 ```
 The application will be available at `http://localhost:3000`.
 

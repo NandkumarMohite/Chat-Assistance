@@ -56,9 +56,30 @@ function buildAPIDescription() {
   for (const api of registry.apis) {
     desc += `─── ${api.id} ───\n`;
     desc += `  Name: ${api.name}\n`;
+    if (api.category) desc += `  Category: ${api.category}\n`;
+    if (api.priority) desc += `  Priority: ${api.priority} (lower = preferred)\n`;
     desc += `  Description: ${api.description}\n`;
     desc += `  Method: ${api.method}\n`;
     desc += `  Path: ${api.path}\n`;
+
+    // Station scope routing info
+    if (api.stationScope) {
+      const scope = api.stationScope;
+      const supports = [];
+      if (scope.singleStation) supports.push('single stationId');
+      if (scope.multipleStations) supports.push('multiple stationIds');
+      if (scope.allStations) supports.push('all stations (omit param)');
+      desc += `  Station Scope: ${supports.join(' | ')} [param: ${scope.paramName} (${scope.paramType})]\n`;
+      desc += `  Station Note: ${scope.note}\n`;
+    }
+
+    // Disambiguation hints
+    if (api.disambiguationHints && api.disambiguationHints.length > 0) {
+      desc += `  When to use:\n`;
+      for (const hint of api.disambiguationHints) {
+        desc += `    • ${hint}\n`;
+      }
+    }
 
     if (api.parameters && api.parameters.length > 0) {
       desc += `  Path Parameters:\n`;

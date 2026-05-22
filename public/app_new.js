@@ -120,7 +120,14 @@ function setupEventListeners() {
   newChatBtn.addEventListener('click', clearChat);
   clearChatBtn.addEventListener('click', clearChat);
 
-  mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('mobile-open'));
+  mobileMenuBtn.addEventListener('click', () => {
+    if (sidebar.classList.contains('collapsed')) {
+      sidebar.classList.remove('collapsed');
+    } else {
+      sidebar.classList.toggle('mobile-open');
+    }
+  });
+  
   sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
 
   themeToggleBtn.addEventListener('click', () => {

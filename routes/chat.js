@@ -129,10 +129,36 @@ router.post('/', async (req, res) => {
           console.log(`[ROUTING] Query Params from LLM:`, JSON.stringify(apiPlan.calls[0].queryParams, null, 2));
         }
       }
-    } catch {
-      // Fallback: keyword match
-      const allKeywords = registry.apis.flatMap(a => a.keywords || []);
-      requiresAPI = allKeywords.some(k => message.toLowerCase().includes(k.toLowerCase()));
+    } catch (err) {
+      // If the router didn't return clean JSON, log raw output and perform a keyword/category scoring fallback
+      console.log('[ROUTER] Failed to parse classifier JSON:', err?.message || 'parse error');
+      console.log('[ROUTER] Raw classifier output:', classifyResult.content);
+
+      // Score APIs by category/keyword heuristics as a fallback
+      const scored = [];
+      for (const cat of Object.keys(registry.intentCategories || {})) {
+        const matches = findAPIsByCategory(cat, message, registry);
+        if (matches && matches.length > 0) scored.push(...matches);
+      }
+
+      if (scored.length > 0) {
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored[0];
+        requiresAPI = true;
+        apiPlan = {
+          requiresAPI: true,
+          confidence: 0.6,
+          intentCategory: top.apiDef?.category || top.apiId,
+          apiId: top.apiId,
+          pathParams: {},
+          queryParams: {}
+        };
+        console.log('[ROUTER] Fallback selected API:', top.apiId, 'score:', top.score);
+      } else {
+        // Final fallback: simple keyword substring match across all API keywords
+        const allKeywords = registry.apis.flatMap(a => a.keywords || []);
+        requiresAPI = allKeywords.some(k => message.toLowerCase().includes(k.toLowerCase()));
+      }
     }
 
     let apiResults = [];

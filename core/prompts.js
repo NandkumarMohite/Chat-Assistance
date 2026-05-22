@@ -60,8 +60,31 @@ SYNONYM MAPPINGS (user may use these alternative terms):
 ${synonymHints}
 
 RULES:
+ - API ID RULE (CRITICAL): When selecting the apiId field, you MUST choose one of the exact API ids listed in the "Available API endpoints" section above. DO NOT invent or fabricate an apiId. If there is no exact match, set requiresAPI to false, apiId to null, confidence to 0.0, and include a brief reason like "No matching API in registry".
+
 - First classify the intentCategory, then select the best API within that category
 - If the question needs data from the backend, set requiresAPI to true and pick the correct API.
+- STATION SCOPE ROUTING (CRITICAL — read stationScope for each API):
+  1. If user asks about a SINGLE station (e.g., "station 1 OEE", "quality for station 5"):
+     → Use APIs with stationScope.singleStation = true (e.g., get_oee_parameters, get_oee_station_parameters, get_station_quality, get_performance_and_productivity, get_busy_oee_station, get_busy_availability)
+     → Use paramName "stationId" (integer, singular)
+  2. If user asks about MULTIPLE specific stations (e.g., "stations 1, 2 and 3", "compare station 101 and 102"):
+     → Use APIs with stationScope.multipleStations = true (e.g., get_tree_view_of_oee_data, get_tree_view_of_cycle_time, get_kpi_summary_full_data, get_overall_cycle_counts, get_cycle_times, get_line_oee_report_data)
+     → Use paramName "stationIds" (comma-separated string or array)
+  3. If user asks about ALL stations / full plant / plant-wide (e.g., "full plant OEE", "all stations cycle time", "plant performance"):
+     → Use APIs with stationScope.allStations = true (e.g., get_tree_view_of_oee_data, get_tree_view_of_cycle_time, get_kpi_summary_full_data)
+     → OMIT stationIds entirely to get full plant data
+  4. NEVER use a singleStation-only API (like get_oee_parameters) for "all stations" or "full plant" queries
+  5. NEVER use an allStations API (like get_tree_view_of_oee_data) when user explicitly asks for ONE station's details
+  ROUTING EXAMPLES:
+  - "OEE for station 1" → get_oee_station_parameters (singleStation=true), queryParams: { "stationId": 1 }
+  - "full plant OEE" → get_tree_view_of_oee_data (allStations=true), NO stationIds
+  - "compare OEE for stations 101, 102" → get_tree_view_of_oee_data (multipleStations=true), queryParams: { "stationIds": "101,102" }
+  - "cycle time for station 5" → get_cycle_times (singleStation=true), queryParams: { "stationIds": "5" }
+  - "plant cycle time overview" → get_tree_view_of_cycle_time (allStations=true), NO stationIds
+  - "quality for station 2" → get_station_quality (singleStation=true), queryParams: { "stationId": 2 }
+  - "KPI summary for all stations" → get_kpi_summary_full_data (allStations=true), NO stationIds
+  - "busy OEE for station 3" → get_busy_oee_station (singleStation=true), queryParams: { "stationId": 3 }
 - PARAMETER RULES (CRITICAL):
   1. ONLY use parameters that are explicitly listed in the API's "Path Parameters" section
   2. DO NOT invent or hallucinate parameters like plantId, lineId, or stationId if they are not documented
@@ -100,6 +123,12 @@ ${chainDescriptions}
   - If user says "last N hours/days/weeks/months/years", set from to that phrase and to to "today" only as an intent hint; the backend will turn it into ISO-8601 UTC.
   - If user says "N unit ago" (e.g. "24 hours ago", "1 year ago", "2 months ago"), set from to that phrase. If API expects both bounds, set to to the same phrase unless user explicitly provides another end.
   - If user gives explicit dates (e.g. "from 2026-05-01 to 2026-05-13"), set from="2026-05-01" and to="2026-05-13".
+  - Explicit dates may also be written in human formats like "01 Mar 2026", "1 March 2026", "March 1, 2026", "01/03/2026", or "2026/03/01". Preserve those exact values in queryParams; the backend will normalize them into ISO-8601 UTC.
+  - DATES WITH TIME: Users may include time alongside dates. Preserve the exact format in queryParams — the backend handles all parsing.
+    Supported time formats: 24hr (19:58, 11:36), 12hr (11:00 PM, 12:26 AM), dot separator (11.00 PM, 19.58)
+    Examples: "25-1-2026 11:00 PM", "26-6-2026 19:58", "25/01/2026 11.00 AM"
+  - TIME-ONLY VALUES: If user provides only a time (e.g., "from 11:36 to 19:58" on a given date), set the date+time together in queryParams.
+    Example: "on 26-6-2026 from 11:36 to 19:58" → queryParams: { "startDate": "26-6-2026 11:36", "endDate": "26-6-2026 19:58" }
   - Keep natural phrases/date strings in queryParams when the model cannot safely compute an exact timestamp; backend will normalize using browser timezone.
   - Prefer the API's expected key names when obvious (from/to, start/end, dateFrom/dateTo).
   - DEFAULT DATE RANGE: If a date parameter is REQUIRED but user does NOT specify any date/time range, default to "last 1 week" (set from="last 1 week", to="today").
@@ -109,8 +138,14 @@ ${chainDescriptions}
   - "OEE for last 24 hours" → queryParams: { "from": "24 hours ago" }
   - "show OEE for station 2 for last 3 months" → queryParams: { "stationId": 2, "from": "last 3 months", "to": "today" }
   - "get data from 2026-05-01 to 2026-05-13 for station 1" → queryParams: { "stationId": 1, "from": "2026-05-01", "to": "2026-05-13" }
+  - "give me oee parameter for station 1 from 01 Mar 2026 to 20 Mar 2026" → queryParams: { "stationId": 1, "from": "01 Mar 2026", "to": "20 Mar 2026" }
   - "full plant cycle time" (no date given) → use get_tree_view_of_cycle_time with queryParams: { "startDate": "last 1 week", "endDate": "today" } (default to last week)
   - "cycle time tree for stations 101, 102" → queryParams: { "stationIds": [101, 102], "startDate": "last 1 week", "endDate": "today" }
+  - DATE + TIME EXAMPLES:
+  - "OEE for station 1 from 25-1-2026 11:00 PM to 26-1-2026 12:26 AM" → queryParams: { "stationId": 1, "startDate": "25-1-2026 11:00 PM", "endDate": "26-1-2026 12:26 AM" }
+  - "cycle time on 26-6-2026 from 11:36 to 19:58" → queryParams: { "startDate": "26-6-2026 11:36", "endDate": "26-6-2026 19:58" }
+  - "availability for station 2 from 25-1-2026 11.00 PM to 26-1-2026 08.30" → queryParams: { "stationId": 2, "startDate": "25-1-2026 11.00 PM", "endDate": "26-1-2026 08.30" }
+  - "show data from 19:00 to 23:59 today" → queryParams: { "startDate": "19:00", "endDate": "23:59" }
 - SINGLE DATE = FULL DAY RANGE (CRITICAL):
   - If user mentions a SINGLE date (e.g., "at 14 May 2026", "on May 14", "for 14/05/2026"), ALWAYS set BOTH startDate AND endDate to that same date.
   - The backend will automatically convert startDate to 00:00:00Z and endDate to 23:59:59Z for that day.

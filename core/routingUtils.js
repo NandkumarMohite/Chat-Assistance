@@ -322,6 +322,18 @@ function findAPIsByCategory(category, message, registry) {
  */
 function preprocessMessage(message, registry) {
   const synonyms = registry.synonyms || {};
+  const monthToken = '(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  const explicitDateToken = [
+    `\\d{4}[./-]\\d{1,2}[./-]\\d{1,2}`,
+    `\\d{1,2}[./ -]\\d{1,2}[./ -]\\d{4}`,
+    `\\d{1,2}\\s+${monthToken},?\\s+\\d{4}`,
+    `${monthToken}\\s+\\d{1,2},?\\s+\\d{4}`,
+    `\\d{1,2}[-/.]${monthToken}[-/.]\\d{4}`,
+    `${monthToken}[-/.]\\d{1,2}[-/.]\\d{4}`
+  ].join('|');
+  const explicitDateRangeRe = new RegExp(`\\bfrom\\s+(${explicitDateToken})\\s+to\\s+(${explicitDateToken})\\b`, 'i');
+  const timeToken = `\\d{1,2}[:.]\\d{2}(?:\\s*(?:am|pm))?`;
+  const dateTimeRangeRe = new RegExp(`(?:\\bon\\s+)?(${explicitDateToken})\\s+from\\s+(${timeToken})\\s+to\\s+(${timeToken})\\b`, 'i');
   
   // Extract station IDs
   const stationMatches = message.match(/station\s*(?:id\s*)?(\d+)/gi) || [];
@@ -333,19 +345,53 @@ function preprocessMessage(message, registry) {
     today: /\btoday\b/i,
     lastNUnits: /\blast\s+(\d+)\s+(hour|day|week|month|year)s?\b/i,
     nAgo: /\b(\d+)\s+(hour|day|week|month|year)s?\s+ago\b/i,
-    dateRange: /from\s+(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})/i
+    dateRange: explicitDateRangeRe,
+    dateTimeRange: dateTimeRangeRe
   };
   
   const extractedDates = {};
   for (const [pattern, regex] of Object.entries(datePatterns)) {
     const match = message.match(regex);
     if (match) {
-      extractedDates[pattern] = match;
+      extractedDates[pattern] = pattern === 'dateRange'
+        ? { from: match[1].trim(), to: match[2].trim() }
+        : match;
     }
   }
   
   // Expand message with synonyms
-  const expandedMessage = expandSynonyms(message, synonyms);
+  let expandedMessage = expandSynonyms(message, synonyms);
+  const routingHints = [];
+
+  if (stationIds.length === 1) {
+    routingHints.push(`stationId=${stationIds[0]}`);
+  } else if (stationIds.length > 1) {
+    routingHints.push(`stationIds=${stationIds.join(',')}`);
+  }
+
+  if (extractedDates.dateTimeRange) {
+    const [full, datePart, startTime, endTime] = extractedDates.dateTimeRange;
+    routingHints.push(`startDate=${datePart} ${startTime}`);
+    routingHints.push(`endDate=${datePart} ${endTime}`);
+  } else if (extractedDates.dateRange) {
+    routingHints.push(`from=${extractedDates.dateRange.from}`);
+    routingHints.push(`to=${extractedDates.dateRange.to}`);
+  } else if (extractedDates.yesterday) {
+    routingHints.push('from=yesterday');
+    routingHints.push('to=yesterday');
+  } else if (extractedDates.today) {
+    routingHints.push('from=today');
+    routingHints.push('to=today');
+  } else if (extractedDates.lastNUnits) {
+    routingHints.push(`from=last ${extractedDates.lastNUnits[1]} ${extractedDates.lastNUnits[2]}${Number(extractedDates.lastNUnits[1]) === 1 ? '' : 's'}`);
+    routingHints.push('to=today');
+  } else if (extractedDates.nAgo) {
+    routingHints.push(`from=${extractedDates.nAgo[1]} ${extractedDates.nAgo[2]}${Number(extractedDates.nAgo[1]) === 1 ? '' : 's'} ago`);
+  }
+
+  if (routingHints.length > 0) {
+    expandedMessage = `${expandedMessage}\n\nRouting hints: ${routingHints.join('; ')}`;
+  }
   
   return {
     originalMessage: message,

@@ -114,6 +114,23 @@ function getRangeForToken(token, now) {
   return null;
 }
 
+/**
+ * Normalize time separators: replace '.' with ':' in time portion
+ * e.g., "11.00 PM" → "11:00 PM", "19.58" → "19:58"
+ */
+function normalizeTimeSeparator(value) {
+  // Replace dots used as time separators (H.MM pattern) but not date separators
+  return value.replace(/(\d{1,2})\.(\d{2})(\s*(AM|PM|am|pm|a\.m\.|p\.m\.)?)/g, '$1:$2$3');
+}
+
+/**
+ * Check if the value contains a time component
+ */
+function hasTimeComponent(value) {
+  // Matches patterns like: 11:00, 19:58, 11:00 PM, 12:26 AM, 11.00 PM, etc.
+  return /\d{1,2}[.:]\d{2}(\s*(AM|PM|am|pm|a\.m\.|p\.m\.))?/.test(value);
+}
+
 function parseSingleDateValue(rawValue, boundary, zone, now) {
   if (rawValue === undefined || rawValue === null) return rawValue;
   if (typeof rawValue !== 'string') return rawValue;
@@ -130,14 +147,18 @@ function parseSingleDateValue(rawValue, boundary, zone, now) {
     return now.toUTC().toISO();
   }
 
-  if (DATE_ONLY_RE.test(value)) {
-    const dt = DateTime.fromISO(value, { zone });
+  // Normalize time separators (dots to colons) for parsing
+  const normalized = normalizeTimeSeparator(value);
+  const hasTime = hasTimeComponent(normalized);
+
+  if (DATE_ONLY_RE.test(normalized)) {
+    const dt = DateTime.fromISO(normalized, { zone });
     return (boundary === 'to' ? dt.endOf('day') : dt.startOf('day')).toUTC().toISO();
   }
 
-  let dt = DateTime.fromISO(value, { setZone: true });
+  let dt = DateTime.fromISO(normalized, { setZone: true });
   if (!dt.isValid) {
-    dt = DateTime.fromISO(value, { zone });
+    dt = DateTime.fromISO(normalized, { zone });
   }
 
   if (dt.isValid) {
@@ -145,7 +166,8 @@ function parseSingleDateValue(rawValue, boundary, zone, now) {
   }
 
   // Try common non-ISO date formats that LLMs may output
-  const fallbackFormats = [
+  // Date-only formats (will use startOf/endOf day)
+  const dateOnlyFormats = [
     'd-MMM-yyyy',      // 1-Mar-2026
     'dd-MMM-yyyy',     // 01-Mar-2026
     'd-MMM-yy',        // 1-Mar-26
@@ -159,10 +181,89 @@ function parseSingleDateValue(rawValue, boundary, zone, now) {
     'yyyy/MM/dd',      // 2026/03/01
     'd/M/yyyy',        // 1/3/2026
     'M/d/yyyy',        // 3/1/2026
+    'd-M-yyyy',        // 1-3-2026
+    'dd-MM-yyyy',      // 01-03-2026
   ];
 
-  for (const fmt of fallbackFormats) {
-    const parsed = DateTime.fromFormat(value, fmt, { zone });
+  // Date + Time formats (24hr and 12hr) — will use exact time
+  const dateTimeFormats = [
+    // 24-hour clock formats
+    'd-M-yyyy HH:mm',       // 25-1-2026 11:00
+    'dd-MM-yyyy HH:mm',     // 25-01-2026 11:00
+    'd-M-yyyy H:mm',        // 25-1-2026 9:00
+    'dd-MM-yyyy H:mm',      // 25-01-2026 9:00
+    'd/M/yyyy HH:mm',       // 25/1/2026 11:00
+    'dd/MM/yyyy HH:mm',     // 25/01/2026 11:00
+    'd/M/yyyy H:mm',        // 25/1/2026 9:00
+    'dd/MM/yyyy H:mm',      // 25/01/2026 9:00
+    'yyyy-MM-dd HH:mm',     // 2026-01-25 11:00
+    'yyyy/MM/dd HH:mm',     // 2026/01/25 11:00
+    'd-MMM-yyyy HH:mm',     // 25-Jan-2026 11:00
+    'dd-MMM-yyyy HH:mm',    // 25-Jan-2026 11:00
+    'd MMM yyyy HH:mm',     // 25 Jan 2026 11:00
+    'd MMMM yyyy HH:mm',    // 25 January 2026 11:00
+    'MMM d, yyyy HH:mm',    // Jan 25, 2026 11:00
+    'MMMM d, yyyy HH:mm',   // January 25, 2026 11:00
+    // 12-hour clock formats (AM/PM)
+    'd-M-yyyy h:mm a',      // 25-1-2026 11:00 PM
+    'dd-MM-yyyy h:mm a',    // 25-01-2026 11:00 PM
+    'd-M-yyyy hh:mm a',     // 25-1-2026 11:00 PM
+    'dd-MM-yyyy hh:mm a',   // 25-01-2026 11:00 PM
+    'd/M/yyyy h:mm a',      // 25/1/2026 11:00 PM
+    'dd/MM/yyyy h:mm a',    // 25/01/2026 11:00 PM
+    'd/M/yyyy hh:mm a',     // 25/1/2026 11:00 PM
+    'dd/MM/yyyy hh:mm a',   // 25/01/2026 11:00 PM
+    'yyyy-MM-dd h:mm a',    // 2026-01-25 11:00 PM
+    'yyyy/MM/dd h:mm a',    // 2026/01/25 11:00 PM
+    'd-MMM-yyyy h:mm a',    // 25-Jan-2026 11:00 PM
+    'dd-MMM-yyyy h:mm a',   // 25-Jan-2026 11:00 PM
+    'd MMM yyyy h:mm a',    // 25 Jan 2026 11:00 PM
+    'd MMMM yyyy h:mm a',   // 25 January 2026 11:00 PM
+    'MMM d, yyyy h:mm a',   // Jan 25, 2026 11:00 PM
+    'MMMM d, yyyy h:mm a',  // January 25, 2026 11:00 PM
+    // With seconds
+    'd-M-yyyy HH:mm:ss',    // 25-1-2026 11:00:30
+    'dd-MM-yyyy HH:mm:ss',  // 25-01-2026 11:00:30
+    'd-M-yyyy h:mm:ss a',   // 25-1-2026 11:00:30 PM
+    'dd-MM-yyyy h:mm:ss a', // 25-01-2026 11:00:30 PM
+  ];
+
+  // Try time-only value (e.g., "11:36", "19:58", "11:00 PM") — applies time to today's date
+  const timeOnlyFormats = [
+    'HH:mm',     // 19:58
+    'H:mm',      // 9:58
+    'h:mm a',    // 11:00 PM
+    'hh:mm a',   // 11:00 PM
+    'HH:mm:ss',  // 19:58:30
+    'h:mm:ss a', // 11:00:30 PM
+  ];
+
+  // First try date+time formats (use exact time)
+  for (const fmt of dateTimeFormats) {
+    const parsed = DateTime.fromFormat(normalized, fmt, { zone });
+    if (parsed.isValid) {
+      return parsed.toUTC().toISO();
+    }
+  }
+
+  // Try time-only formats (combine with today's date or contextual date)
+  for (const fmt of timeOnlyFormats) {
+    const parsed = DateTime.fromFormat(normalized, fmt, { zone });
+    if (parsed.isValid) {
+      // Time-only: apply to today's date
+      const combined = now.set({
+        hour: parsed.hour,
+        minute: parsed.minute,
+        second: parsed.second || 0,
+        millisecond: 0
+      });
+      return combined.toUTC().toISO();
+    }
+  }
+
+  // Try date-only formats (use startOf/endOf day since no time given)
+  for (const fmt of dateOnlyFormats) {
+    const parsed = DateTime.fromFormat(normalized, fmt, { zone });
     if (parsed.isValid) {
       return (boundary === 'to' ? parsed.endOf('day') : parsed.startOf('day')).toUTC().toISO();
     }
