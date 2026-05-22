@@ -332,22 +332,28 @@
         }
       ],
       "keywords": [
-        "oee parameters",
-        "station oee",
-        "availability",
-        "availability percentage",
-        "operating time",
-        "stop time",
+        "oee for station",
+        "oee of station",
+        "station 1 oee",
+        "station 2 oee",
+        "availability for station",
+        "availability of station",
+        "operating time for station",
         "stop threshold",
-        "planned production time",
-        "station performance",
-        "oee metrics",
-        "station analytics",
-        "overtime changes",
-        "sum of failures",
-        "scheduled breaks",
-        "This api will give you Paramaters requird for calculating Availability like Planned Production time, Stop Threshold, and Operating Time",
-        "show me station availability"
+        "planned production time for station",
+        "failures for station",
+        "scheduled breaks for station",
+        "show availability for station",
+        "single station availability",
+        "one station oee"
+      ],
+      "doNotUseFor": [
+        "all stations",
+        "full plant",
+        "plant oee",
+        "overall oee",
+        "compare stations",
+        "multiple stations"
       ],
       "responseHints": [
         "percentage (availability %)",
@@ -453,11 +459,20 @@
         }
       ],
       "keywords": [
-        "count the cycles",
-        "model wise cycle count",
-        "day wise cycle count",
-        "time wise cycle count",
-        "we can analys the model (worst / best) by comparing the model with other time range"
+        "ok cycles",
+        "nok cycles",
+        "good cycles",
+        "bad cycles",
+        "cycle count",
+        "how many cycles",
+        "total cycles",
+        "passed cycles",
+        "failed cycles",
+        "production count",
+        "defect count",
+        "rejection count",
+        "ok vs nok",
+        "good vs bad"
       ],
       "responseHints": [
         "Date time wise okay, nok, rework cycles"
@@ -644,26 +659,26 @@
         }
       ],
       "keywords": [
-        "cycle time tree",
-        "tree view cycle time",
-        "plant cycle metrics",
+        "cycle time for all stations",
         "full plant cycle time",
-        "plant average cycle time",
-        "plant total cycles",
-        "line hierarchy",
+        "plant cycle time",
         "all stations cycle time",
-        "all models cycle metrics",
-        "cycle time analytics",
-        "production hierarchy",
-        "manufacturing tree data",
-        "cycle performance",
-        "reference cycle time",
-        "cycle exceed counts",
-        "exceeded reference cycles",
-        "station metrics",
-        "line metrics",
-        "give me all stations cycle time",
-        "this API is Imp for getting the Cycle time for Plant, Lines, Stations and Models in a hierarchical way"
+        "plant average cycle time",
+        "overall cycle time",
+        "cycle time overview",
+        "slowest station",
+        "fastest station",
+        "which station is slowest",
+        "which station has highest cycle time",
+        "compare all stations cycle time",
+        "bottleneck station",
+        "cycle time tree",
+        "cycle time hierarchy"
+      ],
+      "doNotUseFor": [
+        "single station cycle time",
+        "cycle time for station 1",
+        "one station only"
       ],
       "responseHints": [
         "plantAverageCycleTime (overall plant average)",
@@ -792,15 +807,22 @@
         }
       ],
       "keywords": [
-        "cycle times for station",
-        "cycle times for model",
-        "exceeded cycles",
-        "exceeded cycles for model / Station",
-        "station cycle data",
-        "model cycle data",
-        "compare two model cycle time",
-        "compare two station cycle time",
-        "if user given specific model or station we have to use this api to get cycle time data"
+        "cycle time for station",
+        "cycle time of station",
+        "station 1 cycle time",
+        "station 2 cycle time",
+        "cycle time for specific station",
+        "cycle duration for station",
+        "how long is cycle for station",
+        "exceeded cycles for station",
+        "model cycle time",
+        "cycle time statistics for station"
+      ],
+      "doNotUseFor": [
+        "all stations",
+        "full plant",
+        "plant cycle time",
+        "overall cycle time"
       ],
       "responseHints": [
         "duration (array of cycle times)",
@@ -973,23 +995,25 @@
         }
       ],
       "keywords": [
-        "oee tree",
-        "tree view oee",
-        "plant oee metrics",
-        "Full Plant OEE",
-        "Plant Level OEE",
-        "overall equipment effectiveness",
+        "oee for all stations",
+        "full plant oee",
+        "plant oee",
         "overall oee",
-        "line hierarchy",
-        "station oee",
-        "model oee metrics",
-        "oee analytics",
-        "production hierarchy",
-        "manufacturing oee",
-        "station metrics",
-        "line metrics",
-        "for all stations OEE or Availability or performance or quality we have to use this API",
-        "This Api will give you OEE, availability, performance, and quality for Plant, Lines, Stations and Models in a hierarchical way (OEE, availability, performance, and quality)"
+        "all stations oee",
+        "plant level oee",
+        "oee overview",
+        "oee hierarchy",
+        "compare all stations oee",
+        "which station has best oee",
+        "which station has worst oee",
+        "oee tree",
+        "factory oee",
+        "entire plant oee"
+      ],
+      "doNotUseFor": [
+        "single station oee",
+        "oee for station 1",
+        "one station only"
       ],
       "responseHints": [
         "overallOee (overall plant OEE)",
@@ -1102,10 +1126,21 @@
         }
       ],
       "keywords": [
-        "worst model from station in regard to quality",
-        "best model from station in regard to quality",
-        "quality for model",
-        "compare all models quality in a station"
+        "quality for station",
+        "quality of station",
+        "station 1 quality",
+        "station 2 quality",
+        "quality percentage for station",
+        "good cycles for station",
+        "bad cycles for station",
+        "defects for station",
+        "yield for station",
+        "single station quality"
+      ],
+      "doNotUseFor": [
+        "all stations quality",
+        "full plant quality",
+        "overall quality"
       ],
       "responseHints": [
         "overallQuality (overall station quality percentage)",

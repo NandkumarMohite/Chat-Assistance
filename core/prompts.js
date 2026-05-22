@@ -62,22 +62,34 @@ ${synonymHints}
 RULES:
  - API ID RULE (CRITICAL): When selecting the apiId field, you MUST choose one of the exact API ids listed in the "Available API endpoints" section above. DO NOT invent or fabricate an apiId. If there is no exact match, set requiresAPI to false, apiId to null, confidence to 0.0, and include a brief reason like "No matching API in registry".
 
-- First classify the intentCategory, then select the best API within that category
-- If the question needs data from the backend, set requiresAPI to true and pick the correct API.
-- STATION SCOPE ROUTING (CRITICAL — read stationScope for each API):
-  1. If user asks about a SINGLE station (e.g., "station 1 OEE", "quality for station 5"):
-     → Use APIs with stationScope.singleStation = true (e.g., get_oee_parameters, get_oee_station_parameters, get_station_quality, get_performance_and_productivity, get_busy_oee_station, get_busy_availability)
-     → Use paramName "stationId" (integer, singular)
-  2. If user asks about MULTIPLE specific stations (e.g., "stations 1, 2 and 3", "compare station 101 and 102"):
-     → Use APIs with stationScope.multipleStations = true (e.g., get_tree_view_of_oee_data, get_tree_view_of_cycle_time, get_kpi_summary_full_data, get_overall_cycle_counts, get_cycle_times, get_line_oee_report_data)
-     → Use paramName "stationIds" (comma-separated string or array)
-  3. If user asks about ALL stations / full plant / plant-wide (e.g., "full plant OEE", "all stations cycle time", "plant performance"):
-     → Use APIs with stationScope.allStations = true (e.g., get_tree_view_of_oee_data, get_tree_view_of_cycle_time, get_kpi_summary_full_data)
-     → OMIT stationIds entirely to get full plant data
-  4. NEVER use a singleStation-only API (like get_oee_parameters) for "all stations" or "full plant" queries
-  5. NEVER use an allStations API (like get_tree_view_of_oee_data) when user explicitly asks for ONE station's details
-  ROUTING EXAMPLES:
-  - "OEE for station 1" → get_oee_station_parameters (singleStation=true), queryParams: { "stationId": 1 }
+STATION DETECTION - FOLLOW THIS DECISION TREE FIRST:
+Step 1: Look for station ID in the user message
+  - Pattern: "station 1", "station 5", "for station 101", "of station 2"
+  - If you find a SINGLE station number → User wants SINGLE station data
+  - If you find MULTIPLE station numbers (e.g., "stations 1, 2, 3") → User wants MULTI-station data
+  - If NO station number but words like "all stations", "full plant", "plant level", "overall" → User wants ALL stations data
+
+Step 2: Select API based on station scope detected
+  SINGLE STATION (user gave ONE station ID like "station 1"):
+    - OEE/Availability → get_oee_station_parameters or get_oee_parameters (use stationId param)
+    - Cycle Time → get_cycle_times (use stationIds param with single value)
+    - Quality → get_station_quality (use stationId param)
+    - Performance → get_performance_and_productivity (use stationId param)
+  
+  ALL STATIONS / FULL PLANT (no station ID, or "all stations", "plant level"):
+    - OEE → get_tree_view_of_oee_data (NO stationIds param)
+    - Cycle Time → get_tree_view_of_cycle_time (NO stationIds param)
+    - KPI Summary → get_kpi_summary_full_data (NO stationIds param)
+
+CRITICAL ROUTING RULES:
+1. If user says "station X" (where X is a number), ALWAYS use single-station APIs
+2. If user says "all stations" or "full plant" or just "cycle time" without station ID, use tree/plant-level APIs
+3. DO NOT use get_tree_view_of_oee_data for "OEE for station 1" - use get_oee_station_parameters instead
+4. DO NOT use get_oee_parameters for "full plant OEE" - use get_tree_view_of_oee_data instead
+5. For questions like "which station is slowest" or "best station", use tree view APIs (they return all stations for comparison)
+
+ROUTING EXAMPLES:
+  - "OEE for station 1" → get_oee_station_parameters, queryParams: { "stationId": 1 }
   - "full plant OEE" → get_tree_view_of_oee_data (allStations=true), NO stationIds
   - "compare OEE for stations 101, 102" → get_tree_view_of_oee_data (multipleStations=true), queryParams: { "stationIds": "101,102" }
   - "cycle time for station 5" → get_cycle_times (singleStation=true), queryParams: { "stationIds": "5" }
@@ -97,18 +109,20 @@ RULES:
   - "full plant cycle time" → NO stationIds filter needed, just use startDate/endDate
   - "cycle time for stations 101 and 102" → queryParams: { "stationIds": [101, 102], "startDate": "...", "endDate": "..." }
   - "OEE for station 1" → queryParams: { "stationId": 1 } (because this API uses singular stationId)
-- API SELECTION STRATEGY:
-  1. Match user's intent with API "Trigger keywords/phrases" - these are key phrases that indicate which API to use
-  2. Check "Response contains" hints - if user asks for specific data (e.g. "plant average cycle time"), find the API whose response contains that field
-  3. Check "Response fields" - these are actual field names from the API response (e.g. plantAverageCycleTime, ok_cycles, percentage)
-  4. If user mentions a specific metric or field name, select the API that returns that data
-  5. For hierarchical/plant-level data, prefer "tree view" APIs (get_tree_view_of_cycle_time, get_tree_view_of_oee_data)
-  6. For single station metrics, prefer specific station APIs (get_oee_parameters, get_station_quality)
-  EXAMPLES:
-  - "full plant cycle time" → matches keyword "full plant cycle time" AND response field "plantAverageCycleTime" → use get_tree_view_of_cycle_time, confidence: 0.95
-  - "availability percentage" → matches keyword "availability" AND response field "percentage" → use get_oee_parameters, confidence: 0.9
-  - "ok cycles and nok cycles" → matches response fields "ok_cycles", "nok_cycles" → use get_overall_cycle_counts, confidence: 0.95
-  - "plant oee" or "full plant oee" → use get_tree_view_of_oee_data (hierarchical), NOT get_oee_parameters (single station)
+- API SELECTION STRATEGY (in order of priority):
+  1. FIRST: Detect station scope (single station ID vs all stations) - this determines which APIs are valid
+  2. SECOND: Match the metric type (OEE, cycle time, quality, performance)
+  3. THIRD: Check API keywords and response fields
+  
+  QUICK REFERENCE:
+  | User Mentions | Metric | Use This API |
+  |--------------|--------|--------------|
+  | "station 1", "for station X" | OEE | get_oee_station_parameters |
+  | "station 1", "for station X" | Cycle Time | get_cycle_times |
+  | "station 1", "for station X" | Quality | get_station_quality |
+  | "all stations", "plant", no ID | OEE | get_tree_view_of_oee_data |
+  | "all stations", "plant", no ID | Cycle Time | get_tree_view_of_cycle_time |
+  | "which station", "slowest", "best" | Any | Use tree view APIs |
 - If the user identifies an entity by phone, email, or name (not by ID), and a DEPENDENCY CHAIN exists for it, set chainId to that chain's id instead of apiId.
 - Available dependency chains:
 ${chainDescriptions}

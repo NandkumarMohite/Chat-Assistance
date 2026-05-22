@@ -99,6 +99,11 @@ function buildAPIDescription() {
       desc += `  Trigger keywords/phrases: ${api.keywords.join(', ')}\n`;
     }
 
+    // DO NOT USE FOR - negative keywords to prevent wrong API selection
+    if (api.doNotUseFor && api.doNotUseFor.length > 0) {
+      desc += `  DO NOT use for: ${api.doNotUseFor.join(', ')}\n`;
+    }
+
     if (api.responseHints) {
       desc += `  Response contains: ${api.responseHints.join(', ')}\n`;
     }
