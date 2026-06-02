@@ -10,7 +10,7 @@ const { callOllama, extractJSON } = require('../core/ollama');
 const { executeAPICall, applyClientFilter, executeDependencyChain } = require('../core/executor');
 const { getCachedResponse, getCacheRegistry: getCacheRegistryFromCache } = require('../core/cacheRegistry');
 const { resolveCallParams, buildClarificationMessage, enrichResponseWithNames } = require('../core/entityResolver');
-const { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildFollowUpDetectionPrompt } = require('../core/prompts');
+const { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt } = require('../core/prompts');
 const { resolveTemporalQueryParams } = require('../core/dateRange');
 const { getMockResponse } = require('../core/test-mock-data');
 const { TEST_LOCALLY } = require('../core/config');
@@ -21,8 +21,7 @@ const {
   handleLowConfidence,
   preprocessMessage,
   logRoutingDecision,
-  resolveApiIdFromRelated,
-  detectIntentCategory
+  resolveApiIdFromRelated
 } = require('../core/routingUtils');
 
 function buildApiUrl(baseUrl, apiPath, pathParams = {}, queryParams = {}) {
@@ -194,23 +193,37 @@ router.post('/', async (req, res) => {
     // ── STEP 1: Classify intent & pick API / chain ──
     send('status', { step: 'classify', message: '🧠 Understanding your question...' });
 
-    // Pre-filter APIs by detecting intent category from user message
-    const intentDetection = detectIntentCategory(effectiveMessage, registry);
+    // Pre-filter APIs using LLM-based category detection
     let apiDescriptionOptions = {};
+    const intentCategories = registry.intentCategories || {};
     
-    if (intentDetection.category && intentDetection.confidence !== 'none') {
-      console.log(`[PRE-FILTER] Detected category: "${intentDetection.category}" (confidence: ${intentDetection.confidence}, score: ${intentDetection.score})`);
-      console.log(`[PRE-FILTER] Matched keywords: ${intentDetection.matchedKeywords.slice(0, 5).join(', ')}`);
-      
-      // Only apply filter if confidence is medium or high
-      if (intentDetection.confidence === 'high' || intentDetection.confidence === 'medium') {
-        apiDescriptionOptions.category = intentDetection.category;
-        console.log(`[PRE-FILTER] Filtering API list to category: ${intentDetection.category}`);
-      } else {
-        console.log(`[PRE-FILTER] Low confidence, sending full API list to LLM`);
+    if (Object.keys(intentCategories).length > 0) {
+      try {
+        console.log(`[PRE-FILTER] Using LLM to detect category...`);
+        const categoryResult = await callOllama(
+          buildCategoryDetectionPrompt(intentCategories),
+          effectiveMessage,
+          false,
+          routerModel || null
+        );
+        
+        const categoryParsed = extractJSON(categoryResult.content);
+        if (categoryParsed?.category && categoryParsed.category !== 'general' && categoryParsed.confidence >= 0.7) {
+          console.log(`[PRE-FILTER] LLM detected category: "${categoryParsed.category}" (confidence: ${(categoryParsed.confidence * 100).toFixed(0)}%, reason: ${categoryParsed.reason})`);
+          
+          // Verify category exists in registry
+          if (intentCategories[categoryParsed.category]) {
+            apiDescriptionOptions.category = categoryParsed.category;
+            console.log(`[PRE-FILTER] Filtering API list to category: ${categoryParsed.category}`);
+          } else {
+            console.log(`[PRE-FILTER] Category "${categoryParsed.category}" not in registry, sending full API list`);
+          }
+        } else {
+          console.log(`[PRE-FILTER] LLM result: category=${categoryParsed?.category}, confidence=${categoryParsed?.confidence} - sending full API list`);
+        }
+      } catch (err) {
+        console.warn(`[PRE-FILTER] LLM category detection failed, sending full API list:`, err.message);
       }
-    } else {
-      console.log(`[PRE-FILTER] No category detected, sending full API list to LLM`);
     }
 
     const chainDescriptions = (registry.dependencyChains || [])

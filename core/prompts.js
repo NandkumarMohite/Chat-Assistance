@@ -808,4 +808,51 @@ EXAMPLES:
   → { "isFollowUp": false, "followUpType": "new_request", "reconstructedMessage": null }`;
 }
 
-module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt, buildFollowUpDetectionPrompt };
+// ── Lightweight category detection prompt ──
+// Used to pre-filter APIs before the main routing LLM call
+function buildCategoryDetectionPrompt(categories) {
+  const categoryList = Object.keys(categories).map(cat => `  - ${cat}`).join('\n');
+  const categoryDescriptions = {
+    'oee': 'OEE (Overall Equipment Effectiveness), availability, performance, quality metrics, efficiency',
+    'cycle_time': 'cycle time, station timing, how long operations take, speed of stations',
+    'quality': 'quality metrics, good/bad parts, defect rates, station quality',
+    'performance': 'performance metrics, productivity, throughput',
+    'cycle-monitoring': 'job reports, cycle monitoring, cycle history, cycle counts by station',
+    'product-details': 'product history, product quality, product cycles, tracking products'
+  };
+  
+  const categoryWithDesc = Object.keys(categories)
+    .map(cat => `  - ${cat}: ${categoryDescriptions[cat] || cat}`)
+    .join('\n');
+
+  return `You are a fast intent classifier. Given a user message, determine which API category it belongs to.
+
+AVAILABLE CATEGORIES:
+${categoryWithDesc}
+  - general: general questions not related to manufacturing data
+
+Respond with ONLY a JSON object (no markdown, no explanation):
+{
+  "category": "category_name or null if unclear",
+  "confidence": 0.0-1.0,
+  "reason": "brief 5-word max explanation"
+}
+
+RULES:
+- Match the user's INTENT, not just keywords
+- "cycle time" = cycle_time category
+- "OEE", "efficiency", "availability" = oee category  
+- "quality", "good/bad parts" = quality category
+- "job report", "cycle history" = cycle-monitoring category
+- "product history", "product tracking" = product-details category
+- If unsure, set category to null and confidence to 0
+- Be fast - this is a pre-filter, not the main routing
+
+EXAMPLES:
+"give me cycle time for station IKO" → { "category": "cycle_time", "confidence": 0.95, "reason": "cycle time request" }
+"OEE for station 1" → { "category": "oee", "confidence": 0.95, "reason": "OEE metric request" }
+"show job report" → { "category": "cycle-monitoring", "confidence": 0.9, "reason": "job report request" }
+"what is Java" → { "category": "general", "confidence": 0.99, "reason": "general knowledge" }`;
+}
+
+module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt };

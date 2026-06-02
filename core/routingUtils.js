@@ -438,100 +438,6 @@ function resolveApiIdFromRelated(unknownApiId, ...apiLists) {
   return null;
 }
 
-/**
- * Detect intent category from user message using keywords and API metadata.
- * This allows pre-filtering the API list before sending to the LLM.
- * 
- * @param {string} message - User message
- * @param {Object} registry - The API registry containing intentCategories and apis
- * @returns {{ category: string|null, confidence: string, matchedKeywords: string[] }}
- */
-function detectIntentCategory(message, registry) {
-  if (!message || !registry) return { category: null, confidence: 'none', matchedKeywords: [] };
-  
-  const lowerMessage = message.toLowerCase();
-  const scores = {};
-  const matchedKeywords = {};
-  
-  // Method 1: Check intentCategories mapping (category -> api ids)
-  // Score based on API keywords for each category
-  const intentCategories = registry.intentCategories || {};
-  
-  for (const [category, apiIds] of Object.entries(intentCategories)) {
-    scores[category] = 0;
-    matchedKeywords[category] = [];
-    
-    // Find APIs belonging to this category and check their keywords
-    for (const apiId of apiIds) {
-      const api = registry.apis?.find(a => a.id === apiId);
-      if (api && api.keywords) {
-        for (const keyword of api.keywords) {
-          if (lowerMessage.includes(keyword.toLowerCase())) {
-            scores[category] += 1;
-            matchedKeywords[category].push(keyword);
-          }
-        }
-      }
-    }
-  }
-  
-  // Method 2: Also check category field directly on APIs
-  for (const api of (registry.apis || [])) {
-    if (!api.category) continue;
-    const cat = api.category.toLowerCase();
-    if (!scores[cat]) {
-      scores[cat] = 0;
-      matchedKeywords[cat] = [];
-    }
-    
-    // Check keywords
-    if (api.keywords) {
-      for (const keyword of api.keywords) {
-        if (lowerMessage.includes(keyword.toLowerCase())) {
-          scores[cat] += 1;
-          if (!matchedKeywords[cat].includes(keyword)) {
-            matchedKeywords[cat].push(keyword);
-          }
-        }
-      }
-    }
-    
-    // Check canBeUsedFor
-    if (api.canBeUsedFor) {
-      for (const useCase of api.canBeUsedFor) {
-        if (lowerMessage.includes(useCase.toLowerCase())) {
-          scores[cat] += 2; // Higher weight for canBeUsedFor
-          matchedKeywords[cat].push(`[useCase: ${useCase}]`);
-        }
-      }
-    }
-  }
-  
-  // Find the category with highest score
-  let bestCategory = null;
-  let bestScore = 0;
-  
-  for (const [cat, score] of Object.entries(scores)) {
-    if (score > bestScore) {
-      bestScore = score;
-      bestCategory = cat;
-    }
-  }
-  
-  // Determine confidence level
-  let confidence = 'none';
-  if (bestScore >= 3) confidence = 'high';
-  else if (bestScore >= 1) confidence = 'medium';
-  else if (bestScore > 0) confidence = 'low';
-  
-  return {
-    category: bestCategory,
-    confidence,
-    matchedKeywords: matchedKeywords[bestCategory] || [],
-    score: bestScore
-  };
-}
-
 module.exports = {
   expandSynonyms,
   normalizeQueryParams,
@@ -541,6 +447,5 @@ module.exports = {
   preprocessMessage,
   logRoutingDecision,
   resolveApiIdFromRelated,
-  detectIntentCategory,
   DEFAULT_DATE_ALIASES
 };
