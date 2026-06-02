@@ -82,15 +82,37 @@ function getCacheRegistry() {
 }
 
 // ── Build a full text description of the API surface for the LLM ──
-function buildAPIDescription() {
+// options.category - only include APIs from this category (optional)
+// options.apiIds - only include these specific API ids (optional)
+function buildAPIDescription(options = {}) {
   const registry = getRegistry();
+  const { category: filterCategory, apiIds: filterApiIds } = options;
 
   let desc = `You have access to a REST API service called "${registry.serviceName}".\n`;
   desc += `${registry.description}\n`;
   desc += `Base URL: ${registry.baseUrl}\n\n`;
+  
+  // If filtering is active, mention it
+  if (filterCategory) {
+    desc += `[PRE-FILTERED: Showing APIs for category "${filterCategory}"]\n\n`;
+  }
+  
   desc += `Available API endpoints:\n\n`;
 
-  for (const api of registry.apis) {
+  // Filter APIs if category or apiIds specified
+  let apisToShow = registry.apis;
+  if (filterCategory) {
+    const categoryApiIds = registry.intentCategories?.[filterCategory] || [];
+    apisToShow = registry.apis.filter(api => 
+      api.category?.toLowerCase() === filterCategory.toLowerCase() ||
+      categoryApiIds.includes(api.id)
+    );
+  }
+  if (filterApiIds && filterApiIds.length > 0) {
+    apisToShow = apisToShow.filter(api => filterApiIds.includes(api.id));
+  }
+
+  for (const api of apisToShow) {
     desc += `─── ${api.id} ───\n`;
     desc += `  Name: ${api.name}\n`;
     if (api.category) desc += `  Category: ${api.category}\n`;
@@ -166,8 +188,11 @@ function buildAPIDescription() {
   }
 
   // Include cacheable APIs from cache registry (master/configuration data)
+  // Only include if no category filter, or if category is 'configuration'
   const cacheRegistry = getCacheRegistry();
-  if (cacheRegistry && Array.isArray(cacheRegistry.apis) && cacheRegistry.apis.length > 0) {
+  const includeCacheApis = !filterCategory || filterCategory.toLowerCase() === 'configuration';
+  
+  if (includeCacheApis && cacheRegistry && Array.isArray(cacheRegistry.apis) && cacheRegistry.apis.length > 0) {
     desc += `\n── CACHEABLE CONFIGURATION APIs (served from cache for fast response) ──\n`;
     desc += `These APIs return master/configuration data and are pre-cached. Use these when user asks for lists of stations, lines, alarms, etc.\n\n`;
 

@@ -21,7 +21,8 @@ const {
   handleLowConfidence,
   preprocessMessage,
   logRoutingDecision,
-  resolveApiIdFromRelated
+  resolveApiIdFromRelated,
+  detectIntentCategory
 } = require('../core/routingUtils');
 
 function buildApiUrl(baseUrl, apiPath, pathParams = {}, queryParams = {}) {
@@ -193,12 +194,31 @@ router.post('/', async (req, res) => {
     // ── STEP 1: Classify intent & pick API / chain ──
     send('status', { step: 'classify', message: '🧠 Understanding your question...' });
 
+    // Pre-filter APIs by detecting intent category from user message
+    const intentDetection = detectIntentCategory(effectiveMessage, registry);
+    let apiDescriptionOptions = {};
+    
+    if (intentDetection.category && intentDetection.confidence !== 'none') {
+      console.log(`[PRE-FILTER] Detected category: "${intentDetection.category}" (confidence: ${intentDetection.confidence}, score: ${intentDetection.score})`);
+      console.log(`[PRE-FILTER] Matched keywords: ${intentDetection.matchedKeywords.slice(0, 5).join(', ')}`);
+      
+      // Only apply filter if confidence is medium or high
+      if (intentDetection.confidence === 'high' || intentDetection.confidence === 'medium') {
+        apiDescriptionOptions.category = intentDetection.category;
+        console.log(`[PRE-FILTER] Filtering API list to category: ${intentDetection.category}`);
+      } else {
+        console.log(`[PRE-FILTER] Low confidence, sending full API list to LLM`);
+      }
+    } else {
+      console.log(`[PRE-FILTER] No category detected, sending full API list to LLM`);
+    }
+
     const chainDescriptions = (registry.dependencyChains || [])
       .map(c => `  - ${c.id}: ${c.triggerCondition}`)
       .join('\n');
 
     const classifyResult = await callOllama(
-      buildClassifyPrompt(buildAPIDescription(), chainDescriptions, routingConfig),
+      buildClassifyPrompt(buildAPIDescription(apiDescriptionOptions), chainDescriptions, routingConfig),
       effectiveMessage,
       false,
       routerModel || null
