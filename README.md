@@ -80,6 +80,43 @@ The sidebar shows which models are configured for each role (read-only — not u
 
 ---
 
+## 🧩 Entity Resolver: Supported Entity Types
+
+The entity resolver is **not limited** to just alarm, line, or station entities. It is designed to resolve any entity type defined in the configuration:
+
+- **Generic & Extensible:**
+  - The resolver uses the `ENTITY_CONFIG` and `PARAM_ENTITY_MAP` structures (see `core/entityResolver.js`).
+  - By default, it supports stations, lines, and alarms, but you can add new types (e.g., users, machines, shifts) by updating the config and cache.
+  - It works for any entity type as long as you provide the cache key, ID field, and name fields in the config.
+
+- **How to Extend:**
+  1. Add a new entry to `ENTITY_CONFIG` for your entity type.
+  2. Add the corresponding param mapping in `PARAM_ENTITY_MAP`.
+  3. Ensure your cache contains the relevant data for that entity type.
+
+- **Example:**
+  ```js
+  // In core/entityResolver.js
+  const ENTITY_CONFIG = {
+    station: { ... },
+    line: { ... },
+    alarm: { ... },
+    user: {
+      cacheKey: 'users',
+      idField: 'id',
+      nameFields: ['username', 'fullName'],
+      label: 'user'
+    }
+  };
+  ```
+
+- **Result:**
+  - The resolver will now handle user names/IDs just like stations, lines, and alarms.
+
+> **Note:** The resolver is generic and not hardcoded for any specific entity type. It is fully extensible via configuration.
+
+---
+
 ## 🏎️ GPU Acceleration (NVIDIA)
 
 This project is pre-configured for NVIDIA GPU support in Docker. 

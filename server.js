@@ -9,6 +9,7 @@ const path    = require('path');
 
 const { PORT }         = require('./core/config');
 const { loadRegistry } = require('./core/registry');
+const { loadCacheRegistry, startCacheScheduler } = require('./core/cacheRegistry');
 const fs   = require('fs');
 
 // ── Display Banner ───────────────────────────
@@ -27,6 +28,14 @@ try {
 } catch (err) {
   console.error('❌ Failed to load api-registry.json:', err.message);
   process.exit(1);
+}
+
+// ── Load cache registry and start auto-refresh ─────────────
+try {
+  loadCacheRegistry();
+  startCacheScheduler();
+} catch (err) {
+  console.error('⚠️ Failed to initialize cache registry:', err.message);
 }
 
 // ── Express app setup ────────────────────────

@@ -60,43 +60,30 @@ SYNONYM MAPPINGS (user may use these alternative terms):
 ${synonymHints}
 
 RULES:
- - API ID RULE (CRITICAL): When selecting the apiId field, you MUST choose one of the exact API ids listed in the "Available API endpoints" section above. DO NOT invent or fabricate an apiId. If there is no exact match, set requiresAPI to false, apiId to null, confidence to 0.0, and include a brief reason like "No matching API in registry".
+- First classify the intentCategory, then select the best API within that category
+- If the question needs data from the backend, set requiresAPI to true and pick the correct API.
 
-STATION DETECTION - FOLLOW THIS DECISION TREE FIRST:
-Step 1: Look for station ID in the user message
-  - Pattern: "station 1", "station 5", "for station 101", "of station 2"
-  - If you find a SINGLE station number → User wants SINGLE station data
-  - If you find MULTIPLE station numbers (e.g., "stations 1, 2, 3") → User wants MULTI-station data
-  - If NO station number but words like "all stations", "full plant", "plant level", "overall" → User wants ALL stations data
-
-Step 2: Select API based on station scope detected
-  SINGLE STATION (user gave ONE station ID like "station 1"):
-    - OEE/Availability → get_oee_station_parameters or get_oee_parameters (use stationId param)
-    - Cycle Time → get_cycle_times (use stationIds param with single value)
-    - Quality → get_station_quality (use stationId param)
-    - Performance → get_performance_and_productivity (use stationId param)
+- LEVEL-BASED API SELECTION (CRITICAL - check the "Level" field for each API):
+  Each API has a "Level" field that indicates what scope it operates at:
+  • "Station" = Single station data (requires stationId parameter)
+  • "Multi Station" = Multiple stations comparison (use stationIds parameter or omit for all)
+  • "Multi Model" = Multiple models comparison
+  • "Multi Line" = Multiple production lines
+  • "Compare Multiple Station/Models/Lines" = Plant-wide hierarchical data
   
-  ALL STATIONS / FULL PLANT (no station ID, or "all stations", "plant level"):
-    - OEE → get_tree_view_of_oee_data (NO stationIds param)
-    - Cycle Time → get_tree_view_of_cycle_time (NO stationIds param)
-    - KPI Summary → get_kpi_summary_full_data (NO stationIds param)
+  LEVEL SELECTION RULES:
+  1. If user asks about ONE specific station (e.g., "station 1", "station 5"):
+     → Use APIs with Level: "Station"
+     → Example: "OEE for station 1" → get_oee_parameters (Level: Station)
+  
+  2. If user asks about MULTIPLE stations or "all stations" or "plant level":
+     → Use APIs with Level: "Multi Station" or "Compare Multiple Station/Models/Lines"
+     → Example: "cycle time for all stations" → get_tree_view_of_cycle_time (Level: Multi Station, Multi Model)
+  
+  3. If user asks to COMPARE stations, models, or find "best/worst":
+     → Use APIs with Level containing "Compare" or "Multi"
+     → Example: "which station is slowest" → get_tree_view_of_cycle_time
 
-CRITICAL ROUTING RULES:
-1. If user says "station X" (where X is a number), ALWAYS use single-station APIs
-2. If user says "all stations" or "full plant" or just "cycle time" without station ID, use tree/plant-level APIs
-3. DO NOT use get_tree_view_of_oee_data for "OEE for station 1" - use get_oee_station_parameters instead
-4. DO NOT use get_oee_parameters for "full plant OEE" - use get_tree_view_of_oee_data instead
-5. For questions like "which station is slowest" or "best station", use tree view APIs (they return all stations for comparison)
-
-ROUTING EXAMPLES:
-  - "OEE for station 1" → get_oee_station_parameters, queryParams: { "stationId": 1 }
-  - "full plant OEE" → get_tree_view_of_oee_data (allStations=true), NO stationIds
-  - "compare OEE for stations 101, 102" → get_tree_view_of_oee_data (multipleStations=true), queryParams: { "stationIds": "101,102" }
-  - "cycle time for station 5" → get_cycle_times (singleStation=true), queryParams: { "stationIds": "5" }
-  - "plant cycle time overview" → get_tree_view_of_cycle_time (allStations=true), NO stationIds
-  - "quality for station 2" → get_station_quality (singleStation=true), queryParams: { "stationId": 2 }
-  - "KPI summary for all stations" → get_kpi_summary_full_data (allStations=true), NO stationIds
-  - "busy OEE for station 3" → get_busy_oee_station (singleStation=true), queryParams: { "stationId": 3 }
 - PARAMETER RULES (CRITICAL):
   1. ONLY use parameters that are explicitly listed in the API's "Path Parameters" section
   2. DO NOT invent or hallucinate parameters like plantId, lineId, or stationId if they are not documented
@@ -109,20 +96,26 @@ ROUTING EXAMPLES:
   - "full plant cycle time" → NO stationIds filter needed, just use startDate/endDate
   - "cycle time for stations 101 and 102" → queryParams: { "stationIds": [101, 102], "startDate": "...", "endDate": "..." }
   - "OEE for station 1" → queryParams: { "stationId": 1 } (because this API uses singular stationId)
-- API SELECTION STRATEGY (in order of priority):
-  1. FIRST: Detect station scope (single station ID vs all stations) - this determines which APIs are valid
-  2. SECOND: Match the metric type (OEE, cycle time, quality, performance)
-  3. THIRD: Check API keywords and response fields
+- API SELECTION STRATEGY (use in order):
+  1. FIRST: Check the "Level" field - match user's scope (single station vs multi-station vs plant-wide)
+  2. SECOND: Match user's intent with API "Trigger keywords/phrases"
+  3. THIRD: Check "Response contains" hints - if user asks for specific data, find the API that returns it
+  4. FOURTH: Check "Response fields" - actual field names from the API response
+  5. FIFTH: Check "Can be used for" - this field explicitly lists the use-cases each API is suited for; if the user's request matches one of these use-cases, strongly prefer that API
+  6. SIXTH: Check "Related APIs" - each API lists related API ids; if a related API is a closer match to the user's exact intent, switch to that API's id. Related API ids follow the same $ notation used in dependency chains (e.g. get_oee_parameters, get_busy_oee_station). Always pick the exact id from the registry — never invent an id.
+
+  IMPORTANT: Always select the API id from the registered list above. Never create or guess an API id.
   
-  QUICK REFERENCE:
-  | User Mentions | Metric | Use This API |
-  |--------------|--------|--------------|
-  | "station 1", "for station X" | OEE | get_oee_station_parameters |
-  | "station 1", "for station X" | Cycle Time | get_cycle_times |
-  | "station 1", "for station X" | Quality | get_station_quality |
-  | "all stations", "plant", no ID | OEE | get_tree_view_of_oee_data |
-  | "all stations", "plant", no ID | Cycle Time | get_tree_view_of_cycle_time |
-  | "which station", "slowest", "best" | Any | Use tree view APIs |
+  LEVEL → API MAPPING EXAMPLES:
+  | User Query | Level Needed | API to Use |
+  |------------|--------------|------------|
+  | "OEE for station 1" | Station | get_oee_parameters |
+  | "availability for station 5" | Station | get_oee_parameters |
+  | "cycle time for all stations" | Multi Station | get_tree_view_of_cycle_time |
+  | "which station is slowest" | Multi Station | get_tree_view_of_cycle_time |
+  | "compare stations 1 and 2" | Multi Station | get_overall_cycle_counts |
+  | "ok/nok cycles" | Multi Station, Multi Model | get_overall_cycle_counts |
+  | "full plant cycle time" | Multi Line, Multi Station | get_tree_view_of_cycle_time |
 - If the user identifies an entity by phone, email, or name (not by ID), and a DEPENDENCY CHAIN exists for it, set chainId to that chain's id instead of apiId.
 - Available dependency chains:
 ${chainDescriptions}
@@ -138,11 +131,6 @@ ${chainDescriptions}
   - If user says "N unit ago" (e.g. "24 hours ago", "1 year ago", "2 months ago"), set from to that phrase. If API expects both bounds, set to to the same phrase unless user explicitly provides another end.
   - If user gives explicit dates (e.g. "from 2026-05-01 to 2026-05-13"), set from="2026-05-01" and to="2026-05-13".
   - Explicit dates may also be written in human formats like "01 Mar 2026", "1 March 2026", "March 1, 2026", "01/03/2026", or "2026/03/01". Preserve those exact values in queryParams; the backend will normalize them into ISO-8601 UTC.
-  - DATES WITH TIME: Users may include time alongside dates. Preserve the exact format in queryParams — the backend handles all parsing.
-    Supported time formats: 24hr (19:58, 11:36), 12hr (11:00 PM, 12:26 AM), dot separator (11.00 PM, 19.58)
-    Examples: "25-1-2026 11:00 PM", "26-6-2026 19:58", "25/01/2026 11.00 AM"
-  - TIME-ONLY VALUES: If user provides only a time (e.g., "from 11:36 to 19:58" on a given date), set the date+time together in queryParams.
-    Example: "on 26-6-2026 from 11:36 to 19:58" → queryParams: { "startDate": "26-6-2026 11:36", "endDate": "26-6-2026 19:58" }
   - Keep natural phrases/date strings in queryParams when the model cannot safely compute an exact timestamp; backend will normalize using browser timezone.
   - Prefer the API's expected key names when obvious (from/to, start/end, dateFrom/dateTo).
   - DEFAULT DATE RANGE: If a date parameter is REQUIRED but user does NOT specify any date/time range, default to "last 1 week" (set from="last 1 week", to="today").
@@ -155,11 +143,6 @@ ${chainDescriptions}
   - "give me oee parameter for station 1 from 01 Mar 2026 to 20 Mar 2026" → queryParams: { "stationId": 1, "from": "01 Mar 2026", "to": "20 Mar 2026" }
   - "full plant cycle time" (no date given) → use get_tree_view_of_cycle_time with queryParams: { "startDate": "last 1 week", "endDate": "today" } (default to last week)
   - "cycle time tree for stations 101, 102" → queryParams: { "stationIds": [101, 102], "startDate": "last 1 week", "endDate": "today" }
-  - DATE + TIME EXAMPLES:
-  - "OEE for station 1 from 25-1-2026 11:00 PM to 26-1-2026 12:26 AM" → queryParams: { "stationId": 1, "startDate": "25-1-2026 11:00 PM", "endDate": "26-1-2026 12:26 AM" }
-  - "cycle time on 26-6-2026 from 11:36 to 19:58" → queryParams: { "startDate": "26-6-2026 11:36", "endDate": "26-6-2026 19:58" }
-  - "availability for station 2 from 25-1-2026 11.00 PM to 26-1-2026 08.30" → queryParams: { "stationId": 2, "startDate": "25-1-2026 11.00 PM", "endDate": "26-1-2026 08.30" }
-  - "show data from 19:00 to 23:59 today" → queryParams: { "startDate": "19:00", "endDate": "23:59" }
 - SINGLE DATE = FULL DAY RANGE (CRITICAL):
   - If user mentions a SINGLE date (e.g., "at 14 May 2026", "on May 14", "for 14/05/2026"), ALWAYS set BOTH startDate AND endDate to that same date.
   - The backend will automatically convert startDate to 00:00:00Z and endDate to 23:59:59Z for that day.
@@ -422,6 +405,103 @@ function buildInterpretPrompt(userMessage, apiResults) {
     .filter(r => r.apiId && !r.error)
     .map(r => r.apiId);
 
+  // Try to detect if any API is a configuration API
+  // We'll use a hardcoded list of configuration API ids for now (could be loaded from registry)
+  const CONFIG_API_IDS = [
+    'get_all_stations',
+    'get_all_virtual_devices',
+    'get_all_station_links',
+    'get_all_station_link_buffer',
+    'get_all_station_alarms',
+    'get_all_lines',
+    'get_all_line_links',
+    'get_all_line_buffer',
+    'get_all_energy_meters',
+    'get_all_alarms'
+  ];
+
+  // If any selected API is a configuration API, return a simple direct message and a table of the data
+  const configApi = apiResults.find(r => CONFIG_API_IDS.includes(r.apiId));
+  if (configApi) {
+    let entity = '';
+    switch (configApi.apiId) {
+      case 'get_all_stations':
+        entity = 'stations';
+        break;
+      case 'get_all_virtual_devices':
+        entity = 'virtual devices';
+        break;
+      case 'get_all_station_links':
+        entity = 'station links';
+        break;
+      case 'get_all_station_link_buffer':
+        entity = 'station link buffers';
+        break;
+      case 'get_all_station_alarms':
+        entity = 'station alarms';
+        break;
+      case 'get_all_lines':
+        entity = 'lines';
+        break;
+      case 'get_all_line_links':
+        entity = 'line links';
+        break;
+      case 'get_all_line_buffer':
+        entity = 'line buffers';
+        break;
+      case 'get_all_energy_meters':
+        entity = 'energy meters';
+        break;
+      case 'get_all_alarms':
+        entity = 'alarms';
+        break;
+      default:
+        entity = configApi.apiId.replace(/^get_all_/, '').replace(/_/g, ' ');
+    }
+
+    // Try to extract the data array/object from the API result
+    let data = configApi.data || configApi.result || configApi.response || configApi.output || configApi;
+    // If the data is an array, use it directly; if not, try to find the first array property
+    if (!Array.isArray(data)) {
+      // Try to find the first array property in the object
+      for (const key in data) {
+        if (Array.isArray(data[key])) {
+          data = data[key];
+          break;
+        }
+      }
+    }
+    // If still not an array, wrap in array for uniformity
+    if (!Array.isArray(data)) {
+      data = [data];
+    }
+
+    // Build a markdown table from the data (show up to 10 rows)
+    let table = '';
+    if (data.length > 0 && typeof data[0] === 'object') {
+      const keys = Object.keys(data[0]);
+      table += `\n\n| ${keys.join(' | ')} |\n|${keys.map(() => '---').join('|')}|\n`;
+      data.slice(0, 10).forEach(row => {
+        table += `| ${keys.map(k => String(row[k] ?? '')).join(' | ')} |\n`;
+      });
+      if (data.length > 10) {
+        table += `| ... |\n`;
+      }
+    } else {
+      table += '\n(No data to display)\n';
+    }
+
+    // Use a natural, user-friendly display prompt
+    // Pluralize entity if not already plural (basic check)
+    let displayEntity = entity;
+    if (!displayEntity.endsWith('s')) {
+      displayEntity += 's';
+    }
+    // Capitalize first letter
+    displayEntity = displayEntity.charAt(0).toUpperCase() + displayEntity.slice(1);
+    return `${displayEntity} are listed below:${table}`;
+  }
+
   const specificTemplates = apiIds
     .map(id => API_INTERPRET_TEMPLATES[id])
     .filter(Boolean)
@@ -679,4 +759,53 @@ For significant changes (>5% improvement or degradation), analyze WHY:
 Provide your analysis now.`;
 }
 
-module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt };
+// ── Follow-up / continuation detection prompt ─────────────────────────────
+// Used for short messages (≤ 8 words) that are NOT entity-clarification replies.
+// Handles: time refinements, modifier changes, filter changes, continuations.
+function buildFollowUpDetectionPrompt() {
+  return `You are a conversation context analyzer for a manufacturing analytics assistant.
+
+Your ONLY job: decide if the user's NEW MESSAGE is a follow-up/continuation of their PREVIOUS REQUEST, or a brand-new standalone question.
+
+A message IS a follow-up/continuation when:
+- It refines a time range  (e.g. "last year?", "from Jan to Mar", "this week", "yesterday", "for last month")
+- It changes a single modifier (e.g. "best?", "worst?", "top 10", "ascending", "average")
+- It asks to filter already-shown data (e.g. "filter for only availability", "only for model MK")
+- It asks to extend the same subject ("what about line 2?", "same for station B?")
+- It refers back with pronouns ("it", "that", "those", "same", "previous")
+- It is very short (1-5 words) and makes no sense on its own without reading the previous request
+
+A message is NOT a follow-up when:
+- It starts fresh with a full subject + a DIFFERENT metric (was OEE, now asks about cycle time)
+- It is fully self-contained and makes complete sense without reading the previous message
+- It starts with "give me / show me / get me / what is" PLUS a new full independent subject
+
+Respond with ONLY valid JSON (no markdown, no explanation):
+{
+  "isFollowUp": true|false,
+  "followUpType": "time_refinement|modifier|filter_change|continuation|new_request",
+  "reason": "one sentence",
+  "reconstructedMessage": "Complete standalone instruction merging original + refinement (only when isFollowUp=true, else null)"
+}
+
+The reconstructedMessage MUST be a complete, natural instruction that can be routed directly.
+Merge the ORIGINAL intent and the NEW refinement — do NOT just concatenate them.
+
+EXAMPLES:
+  prev="give me OEE for station MB_40 last month", new="last year?"
+  → { "isFollowUp": true, "followUpType": "time_refinement", "reconstructedMessage": "Give me OEE for station MB_40 for the last year" }
+
+  prev="show worst OEE across all stations for last week", new="best?"
+  → { "isFollowUp": true, "followUpType": "modifier", "reconstructedMessage": "Show best OEE across all stations for last week" }
+
+  prev="give me OEE for station MB_40 last month", new="filter for only availability"
+  → { "isFollowUp": true, "followUpType": "filter_change", "reconstructedMessage": "Give me availability for station MB_40 last month" }
+
+  prev="give me cycle time for station OP101 from Jan to Mar", new="from Apr to Jun"
+  → { "isFollowUp": true, "followUpType": "time_refinement", "reconstructedMessage": "Give me cycle time for station OP101 from Apr to Jun" }
+
+  prev="give me OEE for station MB_40 last month", new="give me cycle time for all stations"
+  → { "isFollowUp": false, "followUpType": "new_request", "reconstructedMessage": null }`;
+}
+
+module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt, buildFollowUpDetectionPrompt };

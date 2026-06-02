@@ -6,8 +6,10 @@ const fs   = require('fs');
 const path = require('path');
 
 const REGISTRY_PATH = path.join(__dirname, '..', 'api-registry.json');
+const CACHE_REGISTRY_PATH = path.join(__dirname, '..', 'api-registry-cache-api.json');
 
 let API_REGISTRY = null;
+let CACHE_REGISTRY = null;
 
 // ── Load registry from disk ──────────────────
 // TODO: If you want to add a New API, you DO NOT need to write any JavaScript!
@@ -22,6 +24,22 @@ function loadRegistry() {
   }
   
   console.log(`✅ Loaded API registry: ${API_REGISTRY.apis.length} endpoints from ${API_REGISTRY.serviceName}`);
+
+  // Also load cache registry for merged API descriptions
+  try {
+    const cacheRaw = fs.readFileSync(CACHE_REGISTRY_PATH, 'utf-8');
+    CACHE_REGISTRY = JSON.parse(cacheRaw);
+    if (process.env.BACKEND_URL) {
+      CACHE_REGISTRY.baseUrl = process.env.BACKEND_URL;
+    }
+    const cacheApiCount = CACHE_REGISTRY.apis ? CACHE_REGISTRY.apis.length : 0;
+    console.log(`✅ Loaded cache registry: ${cacheApiCount} cacheable endpoints`);
+  } catch (err) {
+    console.warn(`⚠️ Could not load cache registry: ${err.message}`);
+    CACHE_REGISTRY = null;
+  }
+  
+
   return API_REGISTRY;
 }
 
@@ -36,12 +54,31 @@ function reloadRegistry() {
   }
 
   console.log(`🔄 API registry reloaded: ${API_REGISTRY.apis.length} endpoints`);
+
+  // Also reload cache registry
+  try {
+    const cacheRaw = fs.readFileSync(CACHE_REGISTRY_PATH, 'utf-8');
+    CACHE_REGISTRY = JSON.parse(cacheRaw);
+    if (process.env.BACKEND_URL) {
+      CACHE_REGISTRY.baseUrl = process.env.BACKEND_URL;
+    }
+    const cacheApiCount = CACHE_REGISTRY.apis ? CACHE_REGISTRY.apis.length : 0;
+    console.log(`🔄 Cache registry reloaded: ${cacheApiCount} cacheable endpoints`);
+  } catch (err) {
+    console.warn(`⚠️ Could not reload cache registry: ${err.message}`);
+  }
+
   return API_REGISTRY;
 }
 
 // ── Get currently loaded registry ────────────
 function getRegistry() {
   return API_REGISTRY;
+}
+
+// ── Get currently loaded cache registry ──────
+function getCacheRegistry() {
+  return CACHE_REGISTRY;
 }
 
 // ── Build a full text description of the API surface for the LLM ──
@@ -58,20 +95,15 @@ function buildAPIDescription() {
     desc += `  Name: ${api.name}\n`;
     if (api.category) desc += `  Category: ${api.category}\n`;
     if (api.priority) desc += `  Priority: ${api.priority} (lower = preferred)\n`;
+    
+    // Level field - indicates what scope/level this API operates at
+    if (api.level && api.level.length > 0) {
+      desc += `  Level: ${api.level.join(', ')}\n`;
+    }
+    
     desc += `  Description: ${api.description}\n`;
     desc += `  Method: ${api.method}\n`;
     desc += `  Path: ${api.path}\n`;
-
-    // Station scope routing info
-    if (api.stationScope) {
-      const scope = api.stationScope;
-      const supports = [];
-      if (scope.singleStation) supports.push('single stationId');
-      if (scope.multipleStations) supports.push('multiple stationIds');
-      if (scope.allStations) supports.push('all stations (omit param)');
-      desc += `  Station Scope: ${supports.join(' | ')} [param: ${scope.paramName} (${scope.paramType})]\n`;
-      desc += `  Station Note: ${scope.note}\n`;
-    }
 
     // Disambiguation hints
     if (api.disambiguationHints && api.disambiguationHints.length > 0) {
@@ -99,11 +131,6 @@ function buildAPIDescription() {
       desc += `  Trigger keywords/phrases: ${api.keywords.join(', ')}\n`;
     }
 
-    // DO NOT USE FOR - negative keywords to prevent wrong API selection
-    if (api.doNotUseFor && api.doNotUseFor.length > 0) {
-      desc += `  DO NOT use for: ${api.doNotUseFor.join(', ')}\n`;
-    }
-
     if (api.responseHints) {
       desc += `  Response contains: ${api.responseHints.join(', ')}\n`;
     }
@@ -114,6 +141,14 @@ function buildAPIDescription() {
       if (fields.length > 0) {
         desc += `  Response fields: ${fields.slice(0, 15).join(', ')}${fields.length > 15 ? '...' : ''}\n`;
       }
+    }
+
+    if (api.canBeUsedFor && api.canBeUsedFor.length > 0) {
+      desc += `  Can be used for: ${api.canBeUsedFor.join(', ')}\n`;
+    }
+
+    if (api.relatedAPIs && api.relatedAPIs.length > 0) {
+      desc += `  Related APIs: ${api.relatedAPIs.join(', ')}\n`;
     }
 
     desc += `\n`;
@@ -127,6 +162,51 @@ function buildAPIDescription() {
       desc += `  Chain: ${chain.id}\n`;
       desc += `  Use when: ${chain.triggerCondition}\n`;
       desc += `  Steps: ${chain.steps.map((s, i) => `${i + 1}) ${s.apiId}${s.filterBy ? ` (filter by ${s.filterBy})` : ''}`).join(' → ')}\n\n`;
+    }
+  }
+
+  // Include cacheable APIs from cache registry (master/configuration data)
+  const cacheRegistry = getCacheRegistry();
+  if (cacheRegistry && Array.isArray(cacheRegistry.apis) && cacheRegistry.apis.length > 0) {
+    desc += `\n── CACHEABLE CONFIGURATION APIs (served from cache for fast response) ──\n`;
+    desc += `These APIs return master/configuration data and are pre-cached. Use these when user asks for lists of stations, lines, alarms, etc.\n\n`;
+
+    for (const api of cacheRegistry.apis) {
+      desc += `─── ${api.id} [CACHED] ───\n`;
+      desc += `  Name: ${api.name}\n`;
+      if (api.category) desc += `  Category: ${api.category}\n`;
+      desc += `  Description: ${api.description}\n`;
+      desc += `  Method: ${api.method}\n`;
+      desc += `  Path: ${api.path}\n`;
+      desc += `  Data Source: CACHE (fast, pre-loaded)\n`;
+
+      if (api.parameters && api.parameters.length > 0) {
+        desc += `  Parameters:\n`;
+        for (const p of api.parameters) {
+          desc += `    - ${p.name} (${p.type}, ${p.required ? 'required' : 'optional'}): ${p.description}\n`;
+        }
+      }
+
+      if (api.keywords) {
+        desc += `  Trigger keywords/phrases: ${api.keywords.join(', ')}\n`;
+      }
+
+      if (api.responseExample) {
+        const fields = extractFieldNames(api.responseExample);
+        if (fields.length > 0) {
+          desc += `  Response fields: ${fields.slice(0, 15).join(', ')}${fields.length > 15 ? '...' : ''}\n`;
+        }
+      }
+
+      if (api.canBeUsedFor && api.canBeUsedFor.length > 0) {
+        desc += `  Can be used for: ${api.canBeUsedFor.join(', ')}\n`;
+      }
+
+      if (api.relatedAPIs && api.relatedAPIs.length > 0) {
+        desc += `  Related APIs: ${api.relatedAPIs.join(', ')}\n`;
+      }
+
+      desc += `\n`;
     }
   }
 
@@ -155,4 +235,4 @@ function extractFieldNames(obj, prefix = '', depth = 0) {
   return [...new Set(fields)]; // Remove duplicates
 }
 
-module.exports = { loadRegistry, reloadRegistry, getRegistry, buildAPIDescription };
+module.exports = { loadRegistry, reloadRegistry, getRegistry, getCacheRegistry, buildAPIDescription };

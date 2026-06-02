@@ -35,7 +35,7 @@
             <img src="logo.jpg" alt="Comau Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />
           </div>
           <span class="logo-text">Comau AI</span>
-        </div>
+        </div> 
         <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="12" x2="21" y2="12" />
@@ -97,10 +97,10 @@
           <details class="chip-category">
             <summary class="chip-category-header">⏱️ Cycle Time</summary>
             <div class="chip-category-items">
-              <button class="chip" data-query="Show full plant cycle time for last 24 hours">🏭 Plant Cycle Time</button>
-              <button class="chip" data-query="What is the cycle time for station 1 for last 24 hours?">🔧 Station Cycle Time</button>
+              <button class="chip" data-query="Show full plant cycle time for today">🏭 Plant Cycle Time</button>
+              <button class="chip" data-query="What is the cycle time for station 1 for last 24 hours?">📍 Station Cycle Time</button>
               <button class="chip" data-query="Which station has the slowest cycle time today?">🐢 Slowest Station</button>
-              <button class="chip" data-query="Show cycle count for all stations for last 24 hours">🔢 Cycle Count</button>
+              <button class="chip" data-query="Show ok and nok cycle counts for all stations today">📊 Cycle Counts</button>
             </div>
           </details>
           <!-- Device Monitoring Category -->
@@ -254,8 +254,14 @@
         <img src="logo.jpg" alt="Comau" style="width: 16px; height: 16px; object-fit: contain;" />
       </div>
       <div class="msg-body">
-        <!-- Status steps -->
-        <div class="status-steps"></div>
+        <!-- Status steps (collapsible) -->
+        <details class="steps-block">
+          <summary class="steps-summary">
+            <span>Show Steps</span>
+            <span class="steps-chevron">›</span>
+          </summary>
+          <div class="status-steps"></div>
+        </details>
         <!-- Thinking block (collapsible) -->
         <details class="thinking-block" hidden>
           <summary class="thinking-summary">

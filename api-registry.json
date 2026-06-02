@@ -7,23 +7,28 @@
       "get_oee_parameters",
       "get_tree_view_of_oee_data",
       "get_oee_station_parameters",
-      "get_line_oee_report_data",
       "get_busy_oee_station",
       "get_busy_availability",
       "get_kpi_summary_full_data"
     ],
     "cycle_time": [
-      "get_cycle_times",
       "get_tree_view_of_cycle_time"
-    ],
-    "cycle_count": [
-      "get_overall_cycle_counts"
     ],
     "quality": [
       "get_station_quality"
     ],
     "performance": [
       "get_performance_and_productivity"
+    ],
+    "cycle-monitoring": [
+      "get_job_report_data",
+      "get_cycles_by_station",
+      "get_cycle_time_history"
+    ],
+    "product-details": [
+      "get_products_history",
+      "get_product_quality",
+      "get_product_cycles"
     ]
   },
   "synonyms": {
@@ -31,101 +36,45 @@
       "ok cycles",
       "successful cycles",
       "passed cycles",
-      "ok_cycles",
-      "good parts",
-      "accepted parts"
+      "ok_cycles"
     ],
     "bad cycles": [
       "nok cycles",
       "failed cycles",
       "rejected cycles",
-      "nok_cycles",
-      "defects",
-      "scrap",
-      "bad parts",
-      "rejects"
+      "nok_cycles"
     ],
     "efficiency": [
       "oee",
       "overall equipment effectiveness",
-      "equipment effectiveness",
-      "effectiveness"
+      "equipment effectiveness"
     ],
     "downtime": [
       "stop time",
       "failures",
       "unavailability",
-      "stopped",
-      "idle time",
-      "not running",
-      "machine down"
+      "stopped"
     ],
     "uptime": [
       "operating time",
       "running time",
-      "availability",
-      "active time",
-      "production time"
+      "availability"
     ],
     "throughput": [
       "cycle count",
       "production count",
-      "total cycles",
-      "output",
-      "pieces produced",
-      "units made"
+      "total cycles"
     ],
     "plant level": [
       "full plant",
       "overall",
       "plant wide",
-      "entire plant",
-      "whole factory",
-      "all stations",
-      "complete plant"
+      "entire plant"
     ],
     "station level": [
       "single station",
       "specific station",
-      "by station",
-      "for station",
-      "one station"
-    ],
-    "target": [
-      "reference",
-      "benchmark",
-      "goal",
-      "expected",
-      "planned"
-    ],
-    "trend": [
-      "over time",
-      "history",
-      "progress",
-      "daily",
-      "weekly",
-      "monthly",
-      "time series"
-    ],
-    "cycle time": [
-      "processing time",
-      "takt time",
-      "production time per part",
-      "time per cycle",
-      "duration"
-    ],
-    "quality": [
-      "defect rate",
-      "rejection rate",
-      "pass rate",
-      "yield",
-      "scrap rate"
-    ],
-    "performance": [
-      "speed",
-      "productivity",
-      "production rate",
-      "output rate"
+      "by station"
     ]
   },
   "dateParamAliases": {
@@ -236,14 +185,6 @@
       "name": "Get OEE Parameters",
       "category": "oee",
       "priority": 2,
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": false,
-        "allStations": false,
-        "paramName": "stationId",
-        "paramType": "integer",
-        "note": "Requires a single stationId. NOT for plant-wide or multi-station queries."
-      },
       "disambiguationHints": [
         "Use for SINGLE station OEE metrics",
         "Requires stationId - NOT for plant-wide OEE",
@@ -331,29 +272,27 @@
           "method": "GET"
         }
       ],
-      "keywords": [
-        "oee for station",
-        "oee of station",
-        "station 1 oee",
-        "station 2 oee",
-        "availability for station",
-        "availability of station",
-        "operating time for station",
-        "stop threshold",
-        "planned production time for station",
-        "failures for station",
-        "scheduled breaks for station",
-        "show availability for station",
-        "single station availability",
-        "one station oee"
+      "level": [
+        "Station"
       ],
-      "doNotUseFor": [
-        "all stations",
-        "full plant",
-        "plant oee",
-        "overall oee",
-        "compare stations",
-        "multiple stations"
+      "canBeUsedFor": [
+        "Tracking Single Station OEE, Availability, Planned Prodcution Time ETC"
+      ],
+      "keywords": [
+        "oee parameters",
+        "oee for Station",
+        "availability for Station",
+        "availability percentage for Station",
+        "operating time for Station",
+        "stop time for Station",
+        "stop threshold for Station",
+        "planned production time for Station",
+        "station performance",
+        "Station oee metrics",
+        "station analytics",
+        "Station sum of failures",
+        "Station scheduled breaks",
+        "This api will give you Paramaters requird for calculating Availability like Planned Production time, Stop Threshold, and Operating Time For a single selected station"
       ],
       "responseHints": [
         "percentage (availability %)",
@@ -363,134 +302,10 @@
       ]
     },
     {
-      "id": "get_overall_cycle_counts",
-      "name": "Get Overall Cycle Counts",
-      "category": "cycle_count",
-      "priority": 1,
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": true,
-        "allStations": true,
-        "paramName": "stationIds",
-        "paramType": "comma-separated string",
-        "note": "Accepts single stationId, multiple comma-separated stationIds, or omit for all stations."
-      },
-      "disambiguationHints": [
-        "Use for OK/NOK cycle counts and quality metrics",
-        "Best for 'good cycles', 'bad cycles', 'ok cycles', 'nok cycles'",
-        "Returns ok_cycles, nok_cycles, totalDuration",
-        "Use for production quality analysis"
-      ],
-      "description": "Retrieves aggregated cycle count statistics for one or more sources within a specified time interval, including OK/NOK cycles, rework-free cycles, total durations, and reference cycle times.",
-      "method": "GET",
-      "path": "/bff/cycle-overall-count",
-      "parameters": [
-        {
-          "name": "stationIds",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Comma separated string of source IDs to retrieve overall cycle count data for."
-        },
-        {
-          "name": "startDate",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Start date/time interval for retrieving cycle count aggregation data."
-        },
-        {
-          "name": "endDate",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "End date/time interval for retrieving cycle count aggregation data."
-        },
-        {
-          "name": "aggregate",
-          "in": "query",
-          "type": "boolean",
-          "required": false,
-          "description": "If true, returns aggregated cycle count data. Default value is false."
-        }
-      ],
-      "responseExample": [
-        {
-          "stationId": 1,
-          "modelId": "MODEL_A",
-          "totalDuration": 5400,
-          "totalTimeNoRework": 5000,
-          "ok_cycles": 120,
-          "nok_cycles": 5,
-          "ok_NoReworkCycles": 118,
-          "nok_NoReworkCycles": 2,
-          "refCycleTime": 45,
-          "startTime": "2026-05-14T05:23:24.333Z",
-          "endTime": "2026-05-14T06:23:24.333Z",
-          "ncycles": 125
-        }
-      ],
-      "possible_API_structure": [
-        {
-          "URL": "baseURL/bff/cycle-overall-count?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
-          "method": "GET"
-        },
-        {
-          "URL": "baseURL/bff/cycle-overall-count?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggregate=true",
-          "method": "GET"
-        },
-        {
-          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
-          "method": "GET"
-        }
-      ],
-      "errorResponses": [
-        {
-          "code": 400,
-          "description": "Invalid request parameters or missing required fields"
-        },
-        {
-          "code": 404,
-          "description": "No cycle count data found for the specified filters"
-        },
-        {
-          "code": 500,
-          "description": "Server error"
-        }
-      ],
-      "keywords": [
-        "ok cycles",
-        "nok cycles",
-        "good cycles",
-        "bad cycles",
-        "cycle count",
-        "how many cycles",
-        "total cycles",
-        "passed cycles",
-        "failed cycles",
-        "production count",
-        "defect count",
-        "rejection count",
-        "ok vs nok",
-        "good vs bad"
-      ],
-      "responseHints": [
-        "Date time wise okay, nok, rework cycles"
-      ]
-    },
-    {
       "id": "get_tree_view_of_cycle_time",
       "name": "Get Tree View Of Cycle Time",
       "category": "cycle_time",
       "priority": 1,
-      "stationScope": {
-        "singleStation": false,
-        "multipleStations": true,
-        "allStations": true,
-        "paramName": "stationIds",
-        "paramType": "comma-separated string",
-        "note": "Use for multiple stations or full plant hierarchical cycle time. NOT for single station - use get_cycle_times instead."
-      },
       "disambiguationHints": [
         "Use for PLANT-LEVEL or HIERARCHICAL cycle time data",
         "Best for 'full plant cycle time', 'plant average cycle time'",
@@ -659,26 +474,36 @@
         }
       ],
       "keywords": [
-        "cycle time for all stations",
-        "full plant cycle time",
-        "plant cycle time",
-        "all stations cycle time",
-        "plant average cycle time",
-        "overall cycle time",
-        "cycle time overview",
-        "slowest station",
-        "fastest station",
-        "which station is slowest",
-        "which station has highest cycle time",
-        "compare all stations cycle time",
-        "bottleneck station",
         "cycle time tree",
-        "cycle time hierarchy"
+        "tree view cycle time",
+        "plant cycle metrics",
+        "full plant cycle time",
+        "plant average cycle time",
+        "plant total cycles",
+        "line hierarchy",
+        "station cycle time",
+        "model cycle metrics",
+        "cycle time analytics",
+        "production hierarchy",
+        "manufacturing tree data",
+        "cycle performance",
+        "reference cycle time",
+        "cycle exceed counts",
+        "exceeded reference cycles",
+        "station metrics",
+        "line metrics",
+        "this API is Imp for getting the Cycle time for Plant, Lines, Stations and Models in a hierarchical way"
       ],
-      "doNotUseFor": [
-        "single station cycle time",
-        "cycle time for station 1",
-        "one station only"
+      "level": [
+        "Multi Line",
+        "Multi Station",
+        "Multi Model",
+        "Comapre Multiple Station/Models/Lines"
+      ],
+      "canBeUsedFor": [
+        "For Comparing all The Stations",
+        "For Comparing all The Models",
+        "For Comaparing All the Line"
       ],
       "responseHints": [
         "plantAverageCycleTime (overall plant average)",
@@ -690,163 +515,10 @@
       ]
     },
     {
-      "id": "get_cycle_times",
-      "name": "Get Cycle Times",
-      "category": "cycle_time",
-      "priority": 2,
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": true,
-        "allStations": true,
-        "paramName": "stationIds",
-        "paramType": "comma-separated string",
-        "note": "Best for specific station(s) cycle time. Accepts single or multiple stationIds. Omit for all."
-      },
-      "disambiguationHints": [
-        "Use for station-level cycle time aggregation",
-        "Good for 'cycle times for station X', 'average cycle duration'",
-        "Returns duration arrays, max/min/std statistics",
-        "NOT for plant-wide view - use get_tree_view_of_cycle_time instead"
-      ],
-      "description": "Retrieves average cycle-time aggregation data for one or more sources within a specified time interval, including duration statistics, reference cycle time, exceeded cycles, and total cycle counts.",
-      "method": "GET",
-      "path": "/bff/cycle-times",
-      "parameters": [
-        {
-          "name": "stationIds",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Comma separated string of station IDs to retrieve cycle-time data for."
-        },
-        {
-          "name": "model",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Model identifier used to filter cycle-time data."
-        },
-        {
-          "name": "startDate",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Get the cycle time starting from this date/time."
-        },
-        {
-          "name": "endDate",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Get the cycle time ending at this date/time."
-        },
-        {
-          "name": "aggLevel",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Aggregation level used for grouping cycle-time data (e.g. hourly, daily, weekly)."
-        },
-        {
-          "name": "aggregate",
-          "in": "query",
-          "type": "boolean",
-          "required": false,
-          "description": "If true, returns aggregated cycle-time data. Default value is false."
-        }
-      ],
-      "responseExample": [
-        {
-          "stationId": 1,
-          "modelId": "MODEL_A",
-          "refCycleTime": 45,
-          "duration": [
-            42,
-            46,
-            44
-          ],
-          "max": [
-            50
-          ],
-          "min": [
-            40
-          ],
-          "std": [
-            3
-          ],
-          "nexceedCycles": 5,
-          "nCycles": 120
-        }
-      ],
-      "possible_API_structure": [
-        {
-          "URL": "baseURL/bff/cycle-times?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
-          "method": "GET"
-        },
-        {
-          "URL": "baseURL/bff/cycle-times?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
-          "method": "GET"
-        },
-        {
-          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
-          "method": "GET"
-        }
-      ],
-      "errorResponses": [
-        {
-          "code": 400,
-          "description": "Invalid request parameters or missing required fields"
-        },
-        {
-          "code": 404,
-          "description": "No cycle-time data found for the specified filters"
-        },
-        {
-          "code": 500,
-          "description": "Server error"
-        }
-      ],
-      "keywords": [
-        "cycle time for station",
-        "cycle time of station",
-        "station 1 cycle time",
-        "station 2 cycle time",
-        "cycle time for specific station",
-        "cycle duration for station",
-        "how long is cycle for station",
-        "exceeded cycles for station",
-        "model cycle time",
-        "cycle time statistics for station"
-      ],
-      "doNotUseFor": [
-        "all stations",
-        "full plant",
-        "plant cycle time",
-        "overall cycle time"
-      ],
-      "responseHints": [
-        "duration (array of cycle times)",
-        "max (maximum cycle time)",
-        "min (minimum cycle time)",
-        "std (standard deviation)",
-        "refCycleTime (reference/target cycle time)",
-        "ncycles (total cycles)",
-        "nExceededCycles (cycles exceeding reference)"
-      ]
-    },
-    {
       "id": "get_tree_view_of_oee_data",
       "name": "Get Tree View Of OEE Data",
       "category": "oee",
       "priority": 1,
-      "stationScope": {
-        "singleStation": false,
-        "multipleStations": true,
-        "allStations": true,
-        "paramName": "stationIds",
-        "paramType": "comma-separated string",
-        "note": "Use for multiple stations or full plant hierarchical OEE. NOT for single station - use get_oee_station_parameters instead."
-      },
       "disambiguationHints": [
         "Use for PLANT-LEVEL or HIERARCHICAL OEE data",
         "Best for 'full plant OEE', 'overall OEE', 'plant wide metrics'",
@@ -995,25 +667,40 @@
         }
       ],
       "keywords": [
-        "oee for all stations",
-        "full plant oee",
-        "plant oee",
-        "overall oee",
-        "all stations oee",
-        "plant level oee",
-        "oee overview",
-        "oee hierarchy",
-        "compare all stations oee",
-        "which station has best oee",
-        "which station has worst oee",
         "oee tree",
-        "factory oee",
-        "entire plant oee"
+        "tree view oee",
+        "plant oee metrics",
+        "Full Plant OEE",
+        "Plant Level OEE",
+        "overall equipment effectiveness",
+        "overall oee",
+        "overall quality",
+        "overall performance",
+        "overall availability",
+        "line hierarchy",
+        "station oee",
+        "model oee metrics",
+        "oee analytics",
+        "production hierarchy",
+        "manufacturing oee",
+        "availability metrics",
+        "performance metrics",
+        "quality metrics",
+        "station metrics",
+        "line metrics",
+        "This Api will give you OEE, availability, performance, and quality for Plant, Lines, Stations and Models in a hierarchical way (OEE, availability, performance, and quality)"
       ],
-      "doNotUseFor": [
-        "single station oee",
-        "oee for station 1",
-        "one station only"
+      "level": [
+        "Plant",
+        "Multi Line",
+        "Multi Station",
+        "Multi Model",
+        "Comapre Multiple Station/Models/Lines"
+      ],
+      "canBeUsedFor": [
+        "For Comparing all The Stations",
+        "For Comparing all The Models",
+        "For Comaparing All the Line"
       ],
       "responseHints": [
         "overallOee (overall plant OEE)",
@@ -1032,14 +719,6 @@
       "name": "Get Station Quality",
       "category": "quality",
       "priority": 2,
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": false,
-        "allStations": false,
-        "paramName": "stationId",
-        "paramType": "integer",
-        "note": "Requires a single stationId. NOT for plant-wide or multi-station quality queries."
-      },
       "disambiguationHints": [
         "Use for SINGLE station quality metrics",
         "Best for 'quality for station X', 'good/bad cycles by station'",
@@ -1126,21 +805,30 @@
         }
       ],
       "keywords": [
-        "quality for station",
-        "quality of station",
-        "station 1 quality",
-        "station 2 quality",
-        "quality percentage for station",
-        "good cycles for station",
-        "bad cycles for station",
-        "defects for station",
-        "yield for station",
-        "single station quality"
+        "station quality",
+        "quality metrics",
+        "overall quality",
+        "modelwise quality",
+        "good cycles",
+        "bad cycles",
+        "quality distribution",
+        "rework excluded",
+        "manufacturing quality",
+        "production quality",
+        "quality analytics",
+        "cycle quality",
+        "Station -> Multiple Models (quality Data)",
+        "Analyas the multiple models in single station for Quality",
+        "If user want quality for a station then this API is best to use. This API will give you quality for a station with or without rework"
       ],
-      "doNotUseFor": [
-        "all stations quality",
-        "full plant quality",
-        "overall quality"
+      "level": [
+        "Station",
+        "Multi Model",
+        "Comapre Multiple Models in single station"
+      ],
+      "canBeUsedFor": [
+        "for Station quality",
+        "For Comparing quality for all The Models in single station"
       ],
       "responseHints": [
         "overallQuality (overall station quality percentage)",
@@ -1153,14 +841,6 @@
     {
       "id": "get_performance_and_productivity",
       "name": "Get Performance And Productivity",
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": false,
-        "allStations": false,
-        "paramName": "stationId",
-        "paramType": "integer",
-        "note": "Requires a single stationId. NOT for plant-wide or multi-station performance queries."
-      },
       "description": "Retrieves performance and productivity metrics for a specific station, including overall performance, overall productivity, and model-wise distribution of performance statistics such as cycles, capacity, and production targets.",
       "method": "GET",
       "path": "/bff/get-performance-and-productivity",
@@ -1234,10 +914,30 @@
         }
       ],
       "keywords": [
-        "worst model from station in regard to performance",
-        "best model from station in regard to performance",
-        "performance for model",
-        "compare all models performance in a station"
+        "station performance",
+        "station productivity",
+        "overall performance",
+        "overall productivity",
+        "modelwise performance",
+        "modelwise productivity",
+        "production performance",
+        "manufacturing productivity",
+        "cycle productivity",
+        "production target",
+        "capacity metrics",
+        "performance analytics",
+        "Station -> Multiple Models (performance Data)",
+        "Analyas the multiple models in single station for performance",
+        "If user want performance for a station then this API is best to use. This API will give you performance for a station with or without rework"
+      ],
+      "level": [
+        "Station",
+        "Multi Model",
+        "Comapre Multiple Models in single station"
+      ],
+      "canBeUsedFor": [
+        "for Station performance",
+        "For Comparing performance for all The Models in single station"
       ],
       "responseHints": [
         "overallPerformance (overall station performance percentage)",
@@ -1251,14 +951,6 @@
     {
       "id": "get_oee_station_parameters",
       "name": "Get OEE Station Parameters",
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": false,
-        "allStations": false,
-        "paramName": "stationId",
-        "paramType": "integer",
-        "note": "Requires a single stationId. Use for one station OEE breakdown only."
-      },
       "description": "Retrieves OEE metrics and related station parameters, including availability, quality, performance, and overall OEE values for a specific station within a given time interval.",
       "method": "GET",
       "path": "/bff/get-oee-station-parameters",
@@ -1339,6 +1031,12 @@
         "oee analytics",
         "rework excluded"
       ],
+      "level": [
+        "Station"
+      ],
+      "canBeUsedFor": [
+        "For single stations OEE, Availability, Performance and Quality values"
+      ],
       "responseHints": [
         "oeeValue (calculated OEE value)",
         "availability (availability percentage)",
@@ -1348,211 +1046,8 @@
       ]
     },
     {
-      "id": "get_line_oee_report_data",
-      "name": "Get Line OEE Report Data",
-      "stationScope": {
-        "singleStation": false,
-        "multipleStations": true,
-        "allStations": true,
-        "paramName": "stationIds",
-        "paramType": "array[integer]",
-        "note": "Line-level API. stationIds is optional filter within a line. Primary filter is Line ID."
-      },
-      "description": "Retrieves OEE reporting data for a production line and its stations. The API provides OEE trends distributed over time in daily, weekly, and monthly formats, including reference OEE values for comparison.",
-      "method": "GET",
-      "path": "/bff/get-line-oee-report-data",
-      "parameters": [
-        {
-          "name": "Line",
-          "in": "query",
-          "type": "integer",
-          "required": false,
-          "description": "Line ID for which OEE reporting data is requested."
-        },
-        {
-          "name": "LineName",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Name of the production line."
-        },
-        {
-          "name": "stationIds",
-          "in": "query",
-          "type": "array[integer]",
-          "required": false,
-          "description": "List of station IDs used to filter station-level OEE reporting data."
-        },
-        {
-          "name": "startDate",
-          "in": "query",
-          "type": "string",
-          "required": false,
-          "description": "Start date/time for retrieving OEE reporting data."
-        }
-      ],
-      "responseExample": {
-        "lineId": 1,
-        "lineName": "Assembly Line 1",
-        "selectedDate": "2026-05-14T11:06:07.819Z",
-        "range": {
-          "startDate": "2026-05-01T00:00:00Z",
-          "to": "2026-05-31T23:59:59Z"
-        },
-        "lineOeeOverview": {
-          "daily": {
-            "range": "Last 7 Days",
-            "data": [
-              {
-                "date": "2026-05-10",
-                "week": "Week 19",
-                "month": "May",
-                "rangeLabel": "Day",
-                "oee": 84.5,
-                "referenceOee": 90
-              }
-            ]
-          },
-          "weekly": {
-            "range": "Last 4 Weeks",
-            "data": [
-              {
-                "date": "2026-W19",
-                "week": "Week 19",
-                "month": "May",
-                "rangeLabel": "Week",
-                "oee": 85.2,
-                "referenceOee": 90
-              }
-            ]
-          },
-          "monthly": {
-            "range": "Last 12 Months",
-            "data": [
-              {
-                "date": "2026-05",
-                "week": "",
-                "month": "May",
-                "rangeLabel": "Month",
-                "oee": 86.1,
-                "referenceOee": 90
-              }
-            ]
-          }
-        },
-        "stations": [
-          {
-            "stationId": 101,
-            "stationName": "Station A",
-            "oeeOverview": {
-              "daily": {
-                "range": "Last 7 Days",
-                "data": [
-                  {
-                    "date": "2026-05-10",
-                    "week": "Week 19",
-                    "month": "May",
-                    "rangeLabel": "Day",
-                    "oee": 83.4,
-                    "referenceOee": 88
-                  }
-                ]
-              },
-              "weekly": {
-                "range": "Last 4 Weeks",
-                "data": [
-                  {
-                    "date": "2026-W19",
-                    "week": "Week 19",
-                    "month": "May",
-                    "rangeLabel": "Week",
-                    "oee": 84.1,
-                    "referenceOee": 88
-                  }
-                ]
-              },
-              "monthly": {
-                "range": "Last 12 Months",
-                "data": [
-                  {
-                    "date": "2026-05",
-                    "week": "",
-                    "month": "May",
-                    "rangeLabel": "Month",
-                    "oee": 85.3,
-                    "referenceOee": 88
-                  }
-                ]
-              }
-            }
-          }
-        ]
-      },
-      "possible_API_structure": [
-        {
-          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1",
-          "method": "GET"
-        },
-        {
-          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101,102",
-          "method": "GET"
-        },
-        {
-          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101&startDate=2026-05-01T00:00:00Z",
-          "method": "GET"
-        }
-      ],
-      "errorResponses": [
-        {
-          "code": 400,
-          "description": "Invalid request parameters or missing required fields"
-        },
-        {
-          "code": 404,
-          "description": "No OEE reporting data found for the specified line or stations"
-        },
-        {
-          "code": 500,
-          "description": "Server error"
-        }
-      ],
-      "keywords": [
-        "line oee report",
-        "oee reporting",
-        "line oee overview",
-        "station oee report",
-        "daily oee",
-        "weekly oee",
-        "monthly oee",
-        "oee trends",
-        "production line analytics",
-        "oee dashboard",
-        "reference oee",
-        "station oee overview",
-        "manufacturing reports",
-        "oee time series"
-      ],
-      "responseHints": [
-        "lineOeeOverview (overall line OEE trends)",
-        "daily (daily OEE spread)",
-        "weekly (weekly OEE spread)",
-        "monthly (monthly OEE spread)",
-        "stations (station-wise OEE reporting)",
-        "referenceOee (target/reference OEE value)",
-        "range (selected reporting date range)"
-      ]
-    },
-    {
       "id": "get_busy_oee_station",
       "name": "Get Busy OEE Station",
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": false,
-        "allStations": false,
-        "paramName": "stationId",
-        "paramType": "integer",
-        "note": "Requires a single stationId. Use for busy OEE of one specific station only."
-      },
       "description": "Retrieves busy OEE metrics for a specific station within a given time interval, including overall OEE values and related OEE variables such as availability, quality, and performance during busy operational periods.",
       "method": "GET",
       "path": "/bff/get-busy-oee-station",
@@ -1612,6 +1107,9 @@
           "description": "Server error"
         }
       ],
+      "level": [
+        "Station"
+      ],
       "keywords": [
         "busy oee",
         "station busy oee",
@@ -1627,6 +1125,9 @@
         "operational performance",
         "This api will give use Busy OEE"
       ],
+      "canBeUsedFor": [
+        "For single stations Busy OEE, Availability, Performance and Quality values"
+      ],
       "responseHints": [
         "oeeValue (calculated busy OEE value)",
         "availability (availability percentage during busy operation)",
@@ -1638,14 +1139,6 @@
     {
       "id": "get_busy_availability",
       "name": "Get Busy Availability",
-      "stationScope": {
-        "singleStation": true,
-        "multipleStations": false,
-        "allStations": false,
-        "paramName": "stationId",
-        "paramType": "integer",
-        "note": "Requires a single stationId. Use for busy availability of one specific station only."
-      },
       "description": "Retrieves busy availability metrics for a specific station, including busy operating time, availability percentage, aggregated availability parameters, overtime changes, and aggregation interval information.",
       "method": "GET",
       "path": "/bff/get-busy-availability",
@@ -1729,6 +1222,12 @@
           "description": "Server error"
         }
       ],
+      "level": [
+        "Station"
+      ],
+      "canBeUsedFor": [
+        "For single stations Busy Availability Values"
+      ],
       "keywords": [
         "busy availability",
         "station busy availability",
@@ -1757,14 +1256,6 @@
       "name": "Get KPI Summary Full Data",
       "category": "oee",
       "priority": 2,
-      "stationScope": {
-        "singleStation": false,
-        "multipleStations": true,
-        "allStations": true,
-        "paramName": "stationIds",
-        "paramType": "comma-separated string",
-        "note": "Use for multiple stations or all stations KPI summary. NOT for single station queries - use get_oee_station_parameters instead."
-      },
       "disambiguationHints": [
         "Use for KPI dashboard/summary with actual vs reference comparison",
         "Best for 'KPI summary', 'actual vs target', 'reference values'",
@@ -1865,6 +1356,11 @@
           "description": "Server error"
         }
       ],
+      "canBeUsedFor": [
+        "For Comaparing All the Stations",
+        "For Comparing all The Models",
+        "For Comparing performance/ quality/OEE/Availability for all Models or stations"
+      ],
       "keywords": [
         "kpi summary",
         "kpi full data",
@@ -1880,8 +1376,14 @@
         "production dashboard",
         "oee summary",
         "kpi analytics",
-        "this api has all models and stations OEE, availability, quality, performance and quantity data",
-        "are we meeting targets"
+        "Compare Multiple Stations",
+        "Compare Multiple Models",
+        "this api has all models and stations OEE, availability, quality, performance and quantity data"
+      ],
+      "level": [
+        "Multi Station",
+        "Multi Model",
+        "Compare Multiple Station/Models"
       ],
       "responseHints": [
         "overAllOEE (overall equipment effectiveness value)",
@@ -1892,6 +1394,512 @@
         "refPerformance (reference performance percentage)",
         "actPerformance (actual performance percentage)",
         "quantity (production quantity count)"
+      ]
+    },
+    {
+      "id": "get_cycle_time_history",
+      "name": "Get Cycle Time History",
+      "category": "cycle-monitoring",
+      "priority": 1,
+      "disambiguationHints": [
+        "Use for detailed historical cycle tracking",
+        "Best for job-level cycle history and duration analysis",
+        "Supports sorting by duration and active cycle filtering",
+        "Useful for identifying slow or long-running cycles"
+      ],
+      "description": "Retrieves historical cycle time records for stations, jobs, and models. Supports filtering by date range, job ID, model ID, active cycles, and cycle duration sorting.",
+      "method": "GET",
+      "path": "/bff/cycle-time-history",
+      "parameters": [
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get cycle times since this date."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get cycle times up to this date."
+        },
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to filter cycle history."
+        },
+        {
+          "name": "jobId",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Job ID used to filter cycle history."
+        },
+        {
+          "name": "modelId",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model ID used to filter cycle history."
+        },
+        {
+          "name": "sortByDuration",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, sorts results by cycle duration."
+        },
+        {
+          "name": "active",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, retrieves only active cycles."
+        },
+        {
+          "name": "sortAscending",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, sorts cycle data in ascending order."
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "sourceId": 1,
+          "jobId": "JOB_20230814_1",
+          "modelId": "6S2P/991",
+          "startedAt": "2020-07-01T16:47:54.353Z",
+          "endedAt": "2020-07-01T16:47:54.353Z",
+          "duration": 32.245,
+          "result": true,
+          "rework": true
+        }
+      ],
+      "canBeUsedFor": [
+        "get cycle duration for product",
+        "get cycle duration for job",
+        "get all Jobs ran on station",
+        "get all jobs for model",
+        "get all rework Jobs on station",
+        "get all Rework jobs on model"
+      ],
+      "keywords": [
+        "cycle history",
+        "cycle history",
+        "historical cycle data",
+        "job cycle history",
+        "active cycles",
+        "cycle duration",
+        "station cycle tracking",
+        "manufacturing cycle analytics"
+      ],
+      "level": [
+        "Station Level",
+        "Job Level",
+        "Model Level"
+      ],
+      "responseHints": [
+        "duration (cycle execution time)",
+        "startedAt (cycle start timestamp)",
+        "endedAt (cycle end timestamp)",
+        "result (cycle result status)",
+        "rework (whether cycle was reworked)"
+      ]
+    },
+    {
+      "id": "get_job_report_data",
+      "name": "Get Job Report Data",
+      "category": "cycle-monitoring",
+      "priority": 1,
+      "disambiguationHints": [
+        "Use for detailed product/job traceability",
+        "Best for runtime product tracking and station transitions",
+        "Supports quality data and runtime parts information",
+        "Useful for production genealogy and reporting"
+      ],
+      "description": "Retrieves detailed job and runtime product report data using product IDs, categories, station transitions, and date range filters. Includes runtime product lifecycle, station activity, operations, quality data, and runtime parts information.",
+      "method": "GET",
+      "path": "/bff/job-report-data",
+      "parameters": [
+        {
+          "name": "productIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated product IDs used to retrieve job reports."
+        },
+        {
+          "name": "categories",
+          "in": "query",
+          "type": "array[integer]",
+          "required": false,
+          "description": "Report category filters."
+        },
+        {
+          "name": "stationTransit",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, includes station transit details."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date for report data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date for report data."
+        }
+      ],
+      "canBeUsedFor": [
+        "Product genealogy tracking",
+        "Runtime product tracing",
+        "Quality inspection reports",
+        "Station transition tracking",
+        "Manufacturing traceability for product"
+      ],
+      "keywords": [
+        "job report",
+        "runtime products",
+        "product genealogy",
+        "station transit",
+        "quality data",
+        "runtime parts",
+        "manufacturing reports",
+        "traceability"
+      ],
+      "level": [
+        "Plant Level",
+        "Station Level",
+        "Job Level",
+        "Product Level"
+      ],
+      "responseHints": [
+        "runtimeProduct (product execution history)",
+        "stations (station execution data)",
+        "qualityData (quality inspection details)",
+        "runtimeParts (runtime component tracking)"
+      ]
+    },
+    {
+      "id": "get_product_cycles",
+      "name": "Get Product Cycles",
+      "category": "product-details",
+      "priority": 1,
+      "primaryEntity": "product",
+      "relatedAPIs": [
+        "get_product_history",
+        "get_product_quality",
+        "get_product_parts",
+        "get_product_params"
+      ],
+      "disambiguationHints": [
+        "Use for retrieving product cycle execution history",
+        "Best for station-wise cycle tracking of a product",
+        "Useful for runtime manufacturing traceability",
+        "Includes cycle timing, operations, and quality details"
+      ],
+      "description": "Retrieves cycle history details for a specific product serial number with optional station filtering, sorting, and pagination support.",
+      "method": "GET",
+      "path": "/bff/product-cycles",
+      "parameters": [
+        {
+          "name": "serialNo",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "Serial number of the product."
+        },
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to filter product cycles."
+        },
+        {
+          "name": "sortDescending",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, sorts cycle history in descending order."
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Page number."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Maximum number of records per page."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "stationName": "OP10A",
+          "stationDescription": "Assembly Station",
+          "cycleStart": "2020-12-16T00:00:00+05:30",
+          "cycleEnd": "2020-12-16T00:00:00+05:30",
+          "duration": 53.24,
+          "result": true,
+          "stnRef": 0,
+          "stnDelta": 4589.12,
+          "operations": {},
+          "qualityData": {
+            "id": 1,
+            "virtualDeviceId": 1,
+            "virtualDeviceName": "OP10A",
+            "stationName": "OP10A",
+            "variableName": "Driver",
+            "variableTypeOther": "Driver",
+            "variableId": 1,
+            "value": "1",
+            "measurementUnit": "1",
+            "qcTimestamp": "2026-05-29T03:45:21.372Z"
+          }
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/product-cycles?serialNo=ABC-123456",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/product-cycles?serialNo=ABC-123456&stationId=1",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "product cycles",
+        "product cycle history",
+        "product traceability",
+        "runtime product",
+        "station product cycle tracking",
+        "product genealogy",
+        "job cycles",
+        "job cycle history"
+      ],
+      "level": [
+        "Product Level",
+        "Station Level"
+      ],
+      "canBeUsedFor": [
+        "Track product manufacturing flow",
+        "Track job manufacturing flow",
+        "View product execution history",
+        "All data for job",
+        "Trace station-wise product movement"
+      ],
+      "responseHints": [
+        "cycleStart (cycle start timestamp)",
+        "cycleEnd (cycle end timestamp)",
+        "duration (cycle duration)",
+        "qualityData (quality inspection details)"
+      ]
+    },
+    {
+      "id": "get_product_quality",
+      "name": "Get Product Quality",
+      "category": "product-details",
+      "priority": 1,
+      "primaryEntity": "product",
+      "relatedAPIs": [
+        "get_product_cycles",
+        "get_product_history",
+        "get_product_params"
+      ],
+      "disambiguationHints": [
+        "Use for product quality inspection details",
+        "Best for quality variable measurements",
+        "Useful for inspection and QC analysis",
+        "Returns quality values captured during manufacturing"
+      ],
+      "description": "Retrieves product quality inspection and measurement details for a specific serial number with optional station filtering and pagination support.",
+      "method": "GET",
+      "path": "/bff/product-quality",
+      "parameters": [
+        {
+          "name": "serialNo",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "Serial number of the product."
+        },
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to filter quality data."
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "virtualDeviceId": 1,
+          "virtualDeviceName": "OP10A",
+          "stationName": "OP10A",
+          "variableName": "Driver",
+          "variableTypeOther": "Driver",
+          "variableId": 1,
+          "value": "1",
+          "measurementUnit": "1",
+          "qcTimestamp": "2026-05-29T03:46:34.180Z"
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/product-quality?serialNo=ABC-123456",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "product quality",
+        "Job quality",
+        "quality inspection",
+        "quality measurements",
+        "qc data for Job",
+        "qc data for product",
+        "manufacturing quality",
+        "quality traceability",
+        "product inspection"
+      ],
+      "level": [
+        "Product Level"
+      ],
+      "canBeUsedFor": [
+        "Inspect product quality",
+        "Analyze QC measurements",
+        "Track manufacturing inspections",
+        "Review quality checkpoints"
+      ],
+      "responseHints": [
+        "variableName (quality parameter name)",
+        "value (measured value)",
+        "measurementUnit (unit of measurement)",
+        "qcTimestamp (quality inspection timestamp)"
+      ]
+    },
+    {
+      "id": "get_products_history",
+      "name": "Get Products History",
+      "category": "product-details",
+      "priority": 1,
+      "primaryEntity": "product",
+      "relatedAPIs": [
+        "get_product_cycles",
+        "get_product_quality",
+        "get_product_parts"
+      ],
+      "disambiguationHints": [
+        "Use for full product traceability history",
+        "Best for runtime product lifecycle analysis",
+        "Supports filtering by model, station, and scrap status",
+        "Useful for genealogy and production tracking"
+      ],
+      "description": "Retrieves runtime product history and traceability information using station, serial number, model, date range, and pagination filters.",
+      "method": "GET",
+      "path": "/bff/products-history",
+      "parameters": [
+        {
+          "name": "serialNo",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Serial number of the product."
+        },
+        {
+          "name": "stationId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Station ID used to filter products."
+        },
+        {
+          "name": "modelName",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model name used to filter products."
+        },
+        {
+          "name": "scrapped",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, retrieves only scrapped products."
+        },
+        {
+          "name": "verbose",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, includes transit and quality data."
+        }
+      ],
+      "responseExample": [
+        {
+          "id": 1,
+          "jobId": "IN-PN-S6P3-015268",
+          "modelId": "1",
+          "scrapped": false,
+          "onlineAt": "1986-08-04T11:30:00.973+05:30",
+          "offlineAt": "2086-08-04T11:30:00.973+05:30",
+          "duration": 4589.12,
+          "dwellTime": 4589.12
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/products-history?serialNo=ABC-123456",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/products-history?modelName=MODEL_X&scrapped=false",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "product history",
+        "product traceability",
+        "runtime products",
+        "product genealogy",
+        "serial tracking",
+        "scrapped products",
+        "manufacturing history"
+      ],
+      "level": [
+        "Product Level"
+      ],
+      "canBeUsedFor": [
+        "Track complete product lifecycle",
+        "Analyze product traceability",
+        "Review runtime product flow",
+        "Investigate scrapped products"
+      ],
+      "responseHints": [
+        "onlineAt (product entered production)",
+        "offlineAt (product exited production)",
+        "duration (total runtime duration)",
+        "dwellTime (product waiting duration)"
       ]
     }
   ]

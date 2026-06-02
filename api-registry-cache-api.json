@@ -1,0 +1,630 @@
+{
+  "baseUrl": "http://placeholder-overridden-by-env/api/v1",
+  "serviceName": "Comau Configuration Cache APIs",
+  "description": "Configuration and master data APIs that can be cached and refreshed periodically (every 15 minutes) or on-demand when user requests cache refresh.",
+  "cacheConfig": {
+    "defaultTTL": 900000,
+    "refreshIntervalMinutes": 15,
+    "enableAutoRefresh": true,
+    "enableManualRefresh": true,
+    "refreshOnStartup": true
+  },
+  "cacheRefreshKeywords": [
+    "refresh cache",
+    "update cache",
+    "reload configurations",
+    "refresh data",
+    "clear cache",
+    "sync data",
+    "reload stations",
+    "reload lines",
+    "reload models"
+  ],
+  "apis": [
+    {
+      "id": "get_all_stations",
+      "name": "Get Stations",
+      "category": "configuration",
+      "description": "Retrieve stations information with optional filters for line, area, and pagination.",
+      "method": "GET",
+      "path": "/bff/get-stations",
+      "relatedAPIs": [
+        "get_stations_for_line",
+        "get_stations_by_line_id"
+      ],
+      "parameters": [
+        {
+          "name": "lineId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Filter stations by line."
+        },
+        {
+          "name": "areaId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Filter stations by area."
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Page number starting from 0."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Number of results per page (max 150)."
+        }
+      ],
+      "cacheKey": "stations",
+      "cacheTTL": 900000,
+      "refreshPriority": 1,
+      "responseExample": [
+        {
+          "id": 21,
+          "stationNumber": 21,
+          "name": "FR_UB_ST1",
+          "description": "",
+          "workingMode": "AUTO",
+          "workType": "NORMAL",
+          "stationLineOrder": "FIRST",
+          "enterMode": "PLC",
+          "cycleTimeMillis": 0,
+          "bottleneckCycleTimeMillis": 0,
+          "productSerialGenerationHere": false,
+          "workOnSubproduct": false
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-stations?offset=0",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-stations?lineId=1&areaId=1&offset=0&limit=150",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "stations",
+        "station list",
+        "stations information",
+        "line stations",
+        "area stations",
+        "station configuration",
+        "all stations in plant",
+        "all stations",
+        "Stations in line",
+        "Stations for line"
+      ]
+    },
+    {
+      "id": "get_all_virtual_devices",
+      "name": "Get all Virtual Devices",
+      "category": "configuration",
+      "description": "Retrieve all virtual devices",
+      "method": "GET",
+      "path": "/bff/virtual-devices",
+      "parameters": [
+      ],
+      "displayData": "table",
+      "cacheKey": "all_virtual_devices",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 123,
+          "uniqueIdOnCollector": "dev_1",
+          "name": "OP015_OCV1",
+          "deviceType": {},
+          "station": {
+            "id": 1,
+            "areaId": 1,
+            "areaName": "area-1",
+            "lineId": 1,
+            "lineName": "line-1",
+            "stationNumber": 1,
+            "name": "OP24A",
+            "description": "welding station",
+            "workingMode": "AUTO",
+            "workType": "REWORK",
+            "stationLineOrder": "FIRST",
+            "enterMode": "BARCODE",
+            "cycleTimeMillis": 700,
+            "bottleneckCycleTimeMillis": 7000,
+            "productSerialGenerationHere": false,
+            "workOnSubproduct": false
+          },
+          "ipAddress": "192.168.100.52",
+          "communicationType": "PLC",
+          "protocol": {},
+          "activationType": "AUTO",
+          "collector": {
+            "id": 123,
+            "name": "smartOpc",
+            "alias": "collector_for_op010",
+            "config": "{\"freq\":\"100\"}",
+            "collectorType": {},
+            "connectedDevices": [
+              {}
+            ],
+            "createdAt": "2026-05-26T06:00:48.587Z",
+            "updatedAt": "2026-05-26T06:00:48.587Z"
+          },
+          "typeOnCollector": "mes",
+          "events": "ALARM",
+          "settings": "string",
+          "deviceId": 1
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-station-virtual-devices/1",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "station virtual devices",
+        "virtual devices",
+        "station devices",
+        "device list",
+        "collector devices"
+      ]
+    },
+    {
+      "id": "get_all_station_links",
+      "name": "Get All Station Links",
+      "category": "configuration",
+      "description": "Retrieve all station links with optional line filter.",
+      "method": "GET",
+      "path": "/bff/get-station-links",
+      "parameters": [
+        {
+          "name": "lineId",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Optional line ID to filter station links."
+        }
+      ],
+      "cacheKey": "station_links",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 1,
+          "fromStationId": 1,
+          "fromStationName": "1",
+          "toStationId": 2,
+          "toStationName": "1",
+          "linkType": "AGV",
+          "condition": "{\n \"version\": \"1.0\",\n  \"variables\":  [\"product\"]\n \"condition\": \"#product.scraped == true\"\n}",
+          "journeyTimeMillis": 2000,
+          "journeyTimeBottleneckMillis": 12000,
+          "stationLinkBufferDTO": {
+            "id": 1,
+            "bufferName": "RD Buffer",
+            "bufferCapacity": 2,
+            "stationLinks": 2,
+            "bufferType": 1
+          },
+          "fromLineId": 0,
+          "fromLineName": "string",
+          "toLineId": 0,
+          "toLineName": "string"
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-station-links",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-station-links?lineId=1",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "station links",
+        "links",
+        "station link",
+        "line links",
+        "agv links",
+        "all stations in plant"
+      ]
+    },
+    {
+      "id": "get_all_station_link_buffer",
+      "name": "Get Station Link Buffer",
+      "category": "configuration",
+      "description": "Retrieve buffer configuration for station links, optionally including line buffers.",
+      "method": "GET",
+      "path": "/bff/get-station-link-buffer",
+      "parameters": [
+        {
+          "name": "lineBuffer",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, return all buffers; otherwise only station link buffer."
+        }
+      ],
+      "cacheKey": "station_link_buffer",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 1,
+          "bufferName": "RD Buffer",
+          "bufferCapacity": 2,
+          "stationLinks": 2,
+          "bufferType": 1
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-station-link-buffer",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-station-link-buffer?lineBuffer=true",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "station link buffer",
+        "link buffer",
+        "buffer configuration",
+        "line buffer",
+        "station buffers"
+      ]
+    },
+    {
+      "id": "get_all_station_alarms",
+      "name": "Get All Station Alarms",
+      "category": "configuration",
+      "description": "Retrieve all alarm mappings belonging to a station with optional language and verbose mode.",
+      "method": "GET",
+      "path": "/bff/get-station-alarms/{stationId}",
+      "parameters": [
+        {
+          "name": "stationId",
+          "in": "path",
+          "type": "integer",
+          "required": true,
+          "description": "Station ID."
+        },
+        {
+          "name": "lang",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Filter alarm descriptions by language."
+        },
+        {
+          "name": "verbose",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, include variable body."
+        }
+      ],
+      "cacheKey": "station_alarms",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 83,
+          "stationId": 1,
+          "stationName": "FR_10",
+          "alarmId": 83,
+          "variableId": 462,
+          "comparingValue": "1"
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-station-alarms/1?verbose=false",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-station-alarms/1?lang=en&verbose=true",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "station alarms",
+        "alarms",
+        "alarm mappings",
+        "station alarm list",
+        "alarm variables"
+      ]
+    },
+    {
+      "id": "get_all_lines",
+      "name": "Get All Lines",
+      "category": "configuration",
+      "description": "Retrieve information about all plant lines with optional name filter and pagination.",
+      "method": "GET",
+      "path": "/bff/get-lines",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "If set, return the line with this name."
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Page number starting from 0."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Number of results per page (max 150)."
+        }
+      ],
+      "cacheKey": "lines",
+      "cacheTTL": 900000,
+      "refreshPriority": 1,
+      "responseExample": [
+        {
+          "id": 0,
+          "name": "Body Side Complete LH (BSCL) Line",
+          "description": "Specialized sub-assembly line for building the Left-Hand body side structure, incorporating welding, studding, and sealing (Cluster 3 components)."
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-lines?offset=0",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-lines?name=FR%20FE&offset=0&limit=150",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "lines",
+        "plant lines",
+        "line list",
+        "line information",
+        "line configuration",
+        "all Lines in plant"
+      ]
+    },
+    {
+      "id": "get_all_line_links",
+      "name": "Get All Line Links",
+      "category": "configuration",
+      "description": "Retrieve all line links with pagination.",
+      "method": "GET",
+      "path": "/bff/get-all-line-links",
+      "parameters": [
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Page number starting from 0."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Number of results per page (max 150)."
+        }
+      ],
+      "cacheKey": "all_line_links",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 0,
+          "fromLineId": 0,
+          "fromLineName": "string",
+          "toLineId": 0,
+          "toLineName": "string",
+          "linkType": {},
+          "condition": "string",
+          "journeyTimeMillis": 0,
+          "journeyTimeBottleneckMillis": 0
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-all-line-links?offset=0",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-all-line-links?offset=0&limit=150",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "all line links",
+        "line links",
+        "line connections",
+        "link list",
+        "line link list"
+      ]
+    },
+    {
+      "id": "get_all_line_buffer",
+      "name": "Get All Line Buffer",
+      "category": "configuration",
+      "description": "Retrieve all line buffers with pagination.",
+      "method": "GET",
+      "path": "/bff/get-all-line-buffer",
+      "parameters": [
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Page number starting from 0."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Number of results per page (max 150)."
+        }
+      ],
+      "cacheKey": "all_line_buffer",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 1,
+          "bufferName": "RD Buffer",
+          "bufferCapacity": 2,
+          "stationLinks": 2,
+          "bufferType": 1
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-all-line-buffer?offset=0",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-all-line-buffer?offset=0&limit=150",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "all line buffer",
+        "line buffers",
+        "buffer list",
+        "line buffer list",
+        "buffer configuration"
+      ]
+    },
+    {
+      "id": "get_all_energy_meters",
+      "name": "Get All Energy Meters",
+      "category": "configuration",
+      "description": "Retrieve all energy meter configurations.",
+      "method": "GET",
+      "path": "/bff/get-all-energy-meters",
+      "parameters": [],
+      "cacheKey": "all_energy_meters",
+      "cacheTTL": 900000,
+      "refreshPriority": 3,
+      "responseExample": [
+        {
+          "id": 0,
+          "energyMeterName": "string",
+          "description": "string",
+          "virtualDeviceId": 0,
+          "stationIds": [
+            0
+          ]
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-all-energy-meters",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "all energy meters",
+        "energy meters",
+        "energy meter list",
+        "meter configurations",
+        "energy meter configurations"
+      ]
+    },
+    {
+      "id": "get_all_alarms",
+      "name": "Get Alarms",
+      "category": "configuration",
+      "description": "Retrieve alarms with optional filters and pagination.",
+      "method": "GET",
+      "path": "/bff/get-alarms",
+      "parameters": [
+        {
+          "name": "code",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Filter by alarm code."
+        },
+        {
+          "name": "lang",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Filter alarm descriptions by language."
+        },
+        {
+          "name": "isEvent",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "Filter alarms that are or are not events."
+        },
+        {
+          "name": "offset",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Page number starting from 0."
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Number of results per page (max 150)."
+        }
+      ],
+      "cacheKey": "alarms",
+      "cacheTTL": 900000,
+      "refreshPriority": 2,
+      "responseExample": [
+        {
+          "id": 0,
+          "code": "C527WRONG PART LOADED",
+          "severity": 2,
+          "notify": false,
+          "color": "#e06666",
+          "isEvent": false
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-alarms?offset=0",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-alarms?code=C527WRONG%20PART%20LOADED&offset=0&limit=150",
+          "method": "GET"
+        }
+      ],
+      "keywords": [
+        "alarms",
+        "alarm list",
+        "alarm codes",
+        "alarm configuration",
+        "alarm events"
+      ]
+    }
+  ]
+}

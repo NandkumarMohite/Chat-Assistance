@@ -5,10 +5,12 @@
 const express = require('express');
 const router = express.Router();
 
-const { getRegistry, buildAPIDescription } = require('../core/registry');
+const { getRegistry, buildAPIDescription, getCacheRegistry } = require('../core/registry');
 const { callOllama, extractJSON } = require('../core/ollama');
 const { executeAPICall, applyClientFilter, executeDependencyChain } = require('../core/executor');
-const { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt } = require('../core/prompts');
+const { getCachedResponse, getCacheRegistry: getCacheRegistryFromCache } = require('../core/cacheRegistry');
+const { resolveCallParams, buildClarificationMessage, enrichResponseWithNames } = require('../core/entityResolver');
+const { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildFollowUpDetectionPrompt } = require('../core/prompts');
 const { resolveTemporalQueryParams } = require('../core/dateRange');
 const { getMockResponse } = require('../core/test-mock-data');
 const { TEST_LOCALLY } = require('../core/config');
@@ -18,7 +20,8 @@ const {
   validateRouting, 
   handleLowConfidence,
   preprocessMessage,
-  logRoutingDecision 
+  logRoutingDecision,
+  resolveApiIdFromRelated
 } = require('../core/routingUtils');
 
 function buildApiUrl(baseUrl, apiPath, pathParams = {}, queryParams = {}) {
@@ -66,7 +69,9 @@ function buildApiUrl(baseUrl, apiPath, pathParams = {}, queryParams = {}) {
 
 router.post('/', async (req, res) => {
   const { message, conversationHistory = [], jwtToken, clientTimeZone, routerModel, analyzerModel } = req.body;
-  const timeZone = clientTimeZone || 'UTC';
+  // Use client timezone, or server default from config, or fallback to UTC
+  const { DEFAULT_TIMEZONE } = require('../core/config');
+  const timeZone = clientTimeZone || DEFAULT_TIMEZONE || 'UTC';
   console.log(`[CHAT REQUEST] Message: "${message}"`);
   console.log(`[CHAT REQUEST] JWT Token from frontend:`, jwtToken ? jwtToken.substring(0, 20) + '...' : 'NULL or UNDEFINED');
   console.log(`[CHAT REQUEST] Client Timezone: ${timeZone}`);
@@ -97,6 +102,94 @@ router.post('/', async (req, res) => {
     const { expandedMessage, extractedEntities } = preprocessMessage(message, registry);
     console.log(`[ROUTING] Extracted entities:`, extractedEntities);
 
+    // ── Detect follow-up / continuation messages ──────────────────────────────
+    // Two-mode detection:
+    //   1. Entity clarification (rule-based): The last AI turn was a "did you mean?" prompt.
+    //      Extract the original unresolved entity and substitute it directly in the original
+    //      user message — gives the classifier a clean, natural query like
+    //      "Give me OEE parameters for Station MB_10" instead of vague context text.
+    //   2. Other short messages (LLM-based): delegate to buildFollowUpDetectionPrompt so the
+    //      model can detect time refinements, modifier changes, filter changes, etc.
+    let effectiveMessage = expandedMessage;
+    // Declared here (before the detection block) to avoid temporal dead zone —
+    // the assignment inside the if-block below would throw TDZ if declared later.
+    let confirmedEntityNames = [];
+    if (conversationHistory && conversationHistory.length >= 2) {
+      const lastAiMsg   = [...conversationHistory].reverse().find(m => m.role === 'assistant');
+      // Skip the current message itself — the frontend often includes the current user turn
+      // in the history array, so a plain .find() would return it instead of the original request.
+      const lastUserMsg = [...conversationHistory].reverse().find(
+        m => m.role === 'user' && m.content.trim() !== message.trim()
+      );
+
+      if (lastUserMsg?.content) {
+        const trimmed = message.trim();
+
+        // ── Mode 1: Entity clarification ─────────────────────────────────────
+        // Detect the "did you mean?" / "couldn't find" pattern from buildClarificationMessage.
+        const wasClarification = lastAiMsg?.content && (
+          lastAiMsg.content.includes('did you mean') ||
+          lastAiMsg.content.includes('Did you mean') ||
+          lastAiMsg.content.includes("couldn't find an exact match") ||
+          lastAiMsg.content.includes('closest matches') ||
+          lastAiMsg.content.includes('Please reply using the exact name')
+        );
+
+        if (wasClarification) {
+            // Only treat as clarification if reply is likely an entity name (short, no spaces, matches pattern)
+            // e.g., MB_50, M_1, etc. (max 3 words, no spaces, max 20 chars)
+            const isEntityLike = trimmed.length <= 20 && trimmed.split(/\s+/).length === 1 && /[A-Za-z0-9_\-]+/.test(trimmed);
+            if (isEntityLike) {
+              const entityMatch =
+                lastAiMsg.content.match(/🔍 \*\*"([^"]+)"\*\*/i) ||
+                lastAiMsg.content.match(/matching \*\*"([^"]+)"\*\*/i) ||
+                lastAiMsg.content.match(/\*\*"([^"]+)"\*\*[^*]*did you mean/i);
+              const originalEntity = entityMatch?.[1];
+
+              if (originalEntity) {
+                // Replace the original entity in the original user message with what the user just typed.
+                const escaped = originalEntity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const replaced = lastUserMsg.content.replace(new RegExp(escaped, 'gi'), trimmed);
+                effectiveMessage = replaced !== lastUserMsg.content
+                  ? replaced
+                  : `${lastUserMsg.content} (the entity "${originalEntity}" should be treated as "${trimmed}")`;
+              } else {
+                effectiveMessage = `${lastUserMsg.content} (use "${trimmed}" as the station/line/entity name)`;
+              }
+              console.log(`[FOLLOW-UP] Entity clarification: "${originalEntity || '?'}" → "${trimmed}"`);
+              console.log(`[FOLLOW-UP] Reconstructed: "${effectiveMessage}"`);
+              confirmedEntityNames = [trimmed]; // trust this name in the resolver step
+            } else {
+              // Not an entity-like reply, treat as new request (skip clarification logic)
+              // No changes to effectiveMessage or confirmedEntityNames
+              console.log(`[FOLLOW-UP] Skipped clarification: reply not entity-like ("${trimmed}")`);
+            }
+        }
+        // ── Mode 2: Short message — let LLM decide (time, modifier, filter, etc.) ──
+        else if (trimmed.split(/\s+/).length <= 8) {
+          try {
+            const followUpContext = `PREVIOUS USER REQUEST: "${lastUserMsg.content}"\nNEW MESSAGE: "${trimmed}"`;
+            const followUpResult  = await callOllama(
+              buildFollowUpDetectionPrompt(),
+              followUpContext,
+              false,
+              routerModel || null
+            );
+            const followUpParsed = extractJSON(followUpResult.content);
+            if (followUpParsed?.isFollowUp === true && followUpParsed.reconstructedMessage) {
+              effectiveMessage = followUpParsed.reconstructedMessage;
+              console.log(`[FOLLOW-UP] ${followUpParsed.followUpType}: ${followUpParsed.reason}`);
+              console.log(`[FOLLOW-UP] Reconstructed → "${effectiveMessage}"`);
+            } else {
+              console.log(`[FOLLOW-UP] Standalone request — no reconstruction needed.`);
+            }
+          } catch (err) {
+            console.warn(`[FOLLOW-UP] LLM detection failed, using original message:`, err.message);
+          }
+        }
+      }
+    }
+
     // ── STEP 1: Classify intent & pick API / chain ──
     send('status', { step: 'classify', message: '🧠 Understanding your question...' });
 
@@ -106,7 +199,7 @@ router.post('/', async (req, res) => {
 
     const classifyResult = await callOllama(
       buildClassifyPrompt(buildAPIDescription(), chainDescriptions, routingConfig),
-      expandedMessage,
+      effectiveMessage,
       false,
       routerModel || null
     );
@@ -129,40 +222,15 @@ router.post('/', async (req, res) => {
           console.log(`[ROUTING] Query Params from LLM:`, JSON.stringify(apiPlan.calls[0].queryParams, null, 2));
         }
       }
-    } catch (err) {
-      // If the router didn't return clean JSON, log raw output and perform a keyword/category scoring fallback
-      console.log('[ROUTER] Failed to parse classifier JSON:', err?.message || 'parse error');
-      console.log('[ROUTER] Raw classifier output:', classifyResult.content);
-
-      // Score APIs by category/keyword heuristics as a fallback
-      const scored = [];
-      for (const cat of Object.keys(registry.intentCategories || {})) {
-        const matches = findAPIsByCategory(cat, message, registry);
-        if (matches && matches.length > 0) scored.push(...matches);
-      }
-
-      if (scored.length > 0) {
-        scored.sort((a, b) => b.score - a.score);
-        const top = scored[0];
-        requiresAPI = true;
-        apiPlan = {
-          requiresAPI: true,
-          confidence: 0.6,
-          intentCategory: top.apiDef?.category || top.apiId,
-          apiId: top.apiId,
-          pathParams: {},
-          queryParams: {}
-        };
-        console.log('[ROUTER] Fallback selected API:', top.apiId, 'score:', top.score);
-      } else {
-        // Final fallback: simple keyword substring match across all API keywords
-        const allKeywords = registry.apis.flatMap(a => a.keywords || []);
-        requiresAPI = allKeywords.some(k => message.toLowerCase().includes(k.toLowerCase()));
-      }
+    } catch {
+      // Fallback: keyword match
+      const allKeywords = registry.apis.flatMap(a => a.keywords || []);
+      requiresAPI = allKeywords.some(k => message.toLowerCase().includes(k.toLowerCase()));
     }
 
     let apiResults = [];
     let apiCallsMade = [];
+    let clarificationSent = false;
 
     if (requiresAPI && apiPlan) {
       // ── Handle low confidence routing ──────────────
@@ -202,7 +270,42 @@ router.post('/', async (req, res) => {
           : [];
 
       for (const call of callsToMake) {
-        const apiDef = registry.apis.find(a => a.id === call.apiId);
+        // Look up API definition in main registry first, then cache registry
+        let apiDef = registry.apis.find(a => a.id === call.apiId);
+        let isFromCacheRegistry = false;
+        
+        if (!apiDef) {
+          // Try cache registry
+          const cacheRegistry = getCacheRegistry();
+          if (cacheRegistry && Array.isArray(cacheRegistry.apis)) {
+            apiDef = cacheRegistry.apis.find(a => a.id === call.apiId);
+            if (apiDef) {
+              isFromCacheRegistry = true;
+              console.log(`[ROUTING] Found API ${call.apiId} in cache registry`);
+            }
+          }
+        }
+
+        // Fallback: the LLM may have picked an id that is only listed inside another
+        // API's `relatedAPIs`. Map it back to the parent API that owns it.
+        if (!apiDef) {
+          const cacheRegistry = getCacheRegistry();
+          const resolvedId = resolveApiIdFromRelated(
+            call.apiId,
+            registry.apis,
+            cacheRegistry?.apis
+          );
+          if (resolvedId) {
+            console.log(`[ROUTING] Resolved unknown apiId "${call.apiId}" -> parent "${resolvedId}" via relatedAPIs`);
+            call.apiId = resolvedId;
+            apiDef = registry.apis.find(a => a.id === resolvedId);
+            if (!apiDef && cacheRegistry && Array.isArray(cacheRegistry.apis)) {
+              apiDef = cacheRegistry.apis.find(a => a.id === resolvedId);
+              if (apiDef) isFromCacheRegistry = true;
+            }
+          }
+        }
+
         if (!apiDef) {
           send('error_partial', { message: `Unknown API: ${call.apiId}` });
           continue;
@@ -230,24 +333,54 @@ router.post('/', async (req, res) => {
           timestamp: Date.now()
         });
 
+        // ── Resolve entity names → IDs using cache ─────
+        // e.g. stationId: "OP101" → stationId: 21
+        send('status', { step: 'entity_resolve', message: '🔎 Resolving entity names...' });
+        const entityResolution = resolveCallParams(call.pathParams || {}, call.queryParams || {}, { confirmedNames: confirmedEntityNames });
+
+        if (entityResolution.clarifications.length > 0) {
+          // Ambiguous or unknown entity — ask user for clarification instead of calling the API
+          const clarifyMsg = buildClarificationMessage(entityResolution.clarifications);
+          console.log(`[ENTITY RESOLVER] Clarification needed:`, entityResolution.clarifications.map(c => c.query));
+          send('answer', { content: clarifyMsg });
+          send('done', { requiresAPI: true, apisCalled: [], totalResults: 0, clarification: true });
+          clarificationSent = true;
+          break;
+        }
+
+        // Use entity-resolved params going forward
+        const effectivePathParams  = entityResolution.resolvedPathParams;
+        const effectiveQueryParams = entityResolution.resolvedQueryParams;
+
         // ── Normalize query params for this API ────────
         const normalizedApiParams = normalizeQueryParams(
-          apiDef, 
-          call.queryParams, 
+          apiDef,
+          effectiveQueryParams,
           routingConfig.dateParamAliases
         );
         
         // Resolve temporal values (yesterday, last week, etc.)
         const resolvedQueryParams = resolveTemporalQueryParams(normalizedApiParams, timeZone);
-        console.log(`[DATE RESOLUTION] Before:`, normalizedApiParams);
-        console.log(`[DATE RESOLUTION] After:`, resolvedQueryParams);
-        console.log(`[DATE RESOLUTION] Has date params:`, Object.keys(resolvedQueryParams).filter(k => ['from', 'to', 'start', 'end', 'startDate', 'endDate', 'dateFrom', 'dateTo'].includes(k)));
-        const fullUrl = buildApiUrl(registry.baseUrl, apiDef.path, call.pathParams, resolvedQueryParams);
+        console.log(`[DATE RESOLUTION] Timezone: ${timeZone}`);
+        console.log(`[DATE RESOLUTION] Before (local):`, normalizedApiParams);
+        console.log(`[DATE RESOLUTION] After (UTC):`, resolvedQueryParams);
+        
+        // Use appropriate baseUrl depending on source registry
+        const baseUrlToUse = isFromCacheRegistry 
+          ? (getCacheRegistry()?.baseUrl || registry.baseUrl)
+          : registry.baseUrl;
+        const fullUrl = buildApiUrl(baseUrlToUse, apiDef.path, effectivePathParams, resolvedQueryParams);
 
         const apiCallInfo = { apiId: call.apiId, name: apiDef.name, method: apiDef.method, url: fullUrl, body: call.requestBody || null };
 
         send('api_call', { method: apiDef.method, url: fullUrl, body: call.requestBody || null, name: apiDef.name });
-        send('status', { step: 'execute', message: TEST_LOCALLY ? `🧪 [MOCK] Loading ${apiDef.name}...` : `🔍 Calling ${apiDef.name}...` });
+        
+        // For cache registry APIs, prioritize cache lookup
+        if (isFromCacheRegistry) {
+          send('status', { step: 'cache_lookup', message: `⚡ Looking up cached ${apiDef.name}...` });
+        } else {
+          send('status', { step: 'execute', message: TEST_LOCALLY ? `🧪 [MOCK] Loading ${apiDef.name}...` : `🔍 Calling ${apiDef.name}...` });
+        }
 
         try {
           let result;
@@ -255,7 +388,20 @@ router.post('/', async (req, res) => {
             result = getMockResponse(call.apiId);
             console.log(`[TEST_LOCALLY] Using mock data for: ${call.apiId}`);
           } else {
-            result = await executeAPICall(apiCallInfo, jwtToken);
+            // Always check cache first (especially important for cache registry APIs)
+            const cached = getCachedResponse(call.apiId, fullUrl);
+            if (cached) {
+              send('status', { step: 'cache', message: `⚡ Using cached ${apiDef.name}...` });
+              console.log(`[CACHE HIT] Serving ${call.apiId} from cache`);
+              result = cached.data;
+            } else if (isFromCacheRegistry) {
+              // Cache registry API but no cache - try to call API anyway
+              console.log(`[CACHE MISS] ${call.apiId} is a cache registry API but not cached, calling backend...`);
+              send('status', { step: 'execute', message: `🔍 Cache miss, calling ${apiDef.name}...` });
+              result = await executeAPICall(apiCallInfo, jwtToken);
+            } else {
+              result = await executeAPICall(apiCallInfo, jwtToken);
+            }
           }
 
           // Auth token from login/register responses
@@ -270,6 +416,9 @@ router.post('/', async (req, res) => {
             resultArray = applyClientFilter(resultArray, call.clientFilter, send);
           }
 
+          // Enrich response: add name fields for any ID-only fields (stationId → stationName etc.)
+          resultArray = enrichResponseWithNames(resultArray);
+
           apiResults.push({ apiId: call.apiId, name: apiDef.name, data: resultArray });
           apiCallsMade.push(apiCallInfo);
 
@@ -279,11 +428,15 @@ router.post('/', async (req, res) => {
             pathParams: call.pathParams || {},
             queryParams: resolvedQueryParams || {}
           };
+          // Add displayData if present in API definition
+          if (apiDef.displayData) {
+            metadata.displayData = apiDef.displayData;
+          }
           console.log(`[METADATA] Sending to frontend:`, JSON.stringify(metadata, null, 2));
-          
-          send('data', { 
-            rows: resultArray, 
-            count: resultArray.length, 
+
+          send('data', {
+            rows: resultArray,
+            count: resultArray.length,
             apiName: apiDef.name,
             // Store API call info for frontend to reuse in period comparison
             metadata
@@ -305,6 +458,9 @@ router.post('/', async (req, res) => {
     }
 
     // ── STEP 3: Generate human-readable response ──
+    // Skip if clarification was already sent to the user
+    if (clarificationSent) return res.end();
+
     send('status', { step: 'interpret', message: '💬 Crafting your answer...' });
 
     const interpretPrompt = requiresAPI
@@ -341,7 +497,8 @@ router.post('/', async (req, res) => {
 // ─────────────────────────────────────────────
 router.post('/compare-period', async (req, res) => {
   const { apiId, pathParams = {}, queryParams = {}, userMessage, jwtToken, clientTimeZone, analyzerModel } = req.body;
-  const timeZone = clientTimeZone || 'UTC';
+  const { DEFAULT_TIMEZONE } = require('../core/config');
+  const timeZone = clientTimeZone || DEFAULT_TIMEZONE || 'UTC';
 
   console.log(`[COMPARE-PERIOD] API: ${apiId}, Params:`, queryParams);
 

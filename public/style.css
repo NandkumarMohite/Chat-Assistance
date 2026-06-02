@@ -1,3 +1,43 @@
+/* ── Steps Block (Collapsible Progress Steps) ── */
+.steps-block {
+  border: 1px solid rgba(0, 169, 224, 0.25);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 169, 224, 0.04);
+  margin-bottom: 10px;
+}
+
+.steps-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  list-style: none;
+  user-select: none;
+  transition: background var(--transition);
+}
+
+.steps-summary:hover {
+  background: rgba(0, 169, 224, 0.08);
+}
+
+.steps-summary::-webkit-details-marker {
+  display: none;
+}
+
+.steps-chevron {
+  margin-left: auto;
+  font-size: 1.2rem;
+  transition: transform 0.25s;
+}
+
+details[open] .steps-chevron {
+  transform: rotate(90deg);
+}
 /* ── Reset & Base ── */
 *,
 *::before,
@@ -212,13 +252,7 @@ body {
 .sidebar.collapsed {
   width: 0;
   min-width: 0;
-  overflow: hidden;
 }
-
-.sidebar.collapsed ~ .chat-main .mobile-menu-btn {
-  display: grid;
-}
-
 
 .sidebar-header {
   display: flex;
@@ -1121,6 +1155,7 @@ details[open] .thinking-chevron {
   overflow-x: auto;
   max-height: 450px;
   overflow-y: auto;
+  padding-bottom: 8px;
 }
 
 .data-table {
@@ -1159,12 +1194,12 @@ details[open] .thinking-chevron {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 10px 0;
+  padding: 12px 14px;
 }
 
 .data-cards.compact {
   gap: 8px;
-  padding: 6px 0 6px 12px;
+  padding: 8px 14px 8px 14px;
 }
 
 .data-card {
@@ -1210,7 +1245,7 @@ details[open] .thinking-chevron {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--warning);
-  margin: 14px 0 6px 0;
+  margin: 14px 14px 6px 14px;
   padding-bottom: 4px;
   border-bottom: 1px solid rgba(0, 114, 188, 0.15);
 }
@@ -1219,26 +1254,27 @@ details[open] .thinking-chevron {
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-muted);
-  margin: 10px 0 4px 8px;
+  margin: 10px 14px 4px 14px;
   padding-left: 8px;
   border-left: 2px solid rgba(0, 114, 188, 0.3);
 }
 
 /* ── Hierarchy Items ── */
 .hierarchy-item {
-  margin: 8px 0;
-  padding: 10px 12px;
+  margin: 8px 14px;
+  padding: 12px 14px;
   background: rgba(0, 114, 188, 0.03);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 
 .hierarchy-item .hierarchy-item {
-  margin: 6px 0 6px 8px;
-  padding: 8px 10px;
+  margin: 8px 0;
+  padding: 10px 12px;
   background: rgba(0, 114, 188, 0.02);
-  border-left: 2px solid rgba(0, 114, 188, 0.2);
-  border-radius: 4px;
+  border: none;
+  border-left: 3px solid rgba(0, 114, 188, 0.25);
+  border-radius: 0 6px 6px 0;
 }
 
 .hierarchy-header {
@@ -1252,6 +1288,208 @@ details[open] .thinking-chevron {
   font-weight: 400;
   font-size: 0.75rem;
   color: var(--text-dim);
+}
+
+/* ── Tree View (Expandable Hierarchy) ── */
+.tree-level {
+  padding: 12px 14px;
+}
+
+.tree-level.plant-level {
+  background: linear-gradient(135deg, rgba(0, 114, 188, 0.08), rgba(0, 114, 188, 0.03));
+  border-bottom: 1px solid rgba(0, 114, 188, 0.15);
+}
+
+.tree-node-header.plant-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.tree-section {
+  padding: 10px 14px;
+}
+
+.tree-section-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tree-lines-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tree-node {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 200px;
+  flex: 1 1 calc(50% - 10px);
+  max-width: 100%;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tree-node:hover {
+  border-color: rgba(0, 114, 188, 0.3);
+}
+
+.tree-node.expanded {
+  border-color: rgba(0, 114, 188, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 114, 188, 0.1);
+}
+
+.tree-node-clickable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: default;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.tree-node-clickable.expandable {
+  cursor: pointer;
+}
+
+.tree-node-clickable.expandable:hover {
+  background: rgba(0, 114, 188, 0.06);
+}
+
+.tree-expand-icon {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  width: 14px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.tree-node.expanded > .tree-node-clickable > .tree-expand-icon {
+  transform: rotate(90deg);
+}
+
+.tree-icon {
+  font-size: 1rem;
+}
+
+.tree-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.tree-id {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tree-inline-metrics {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.tree-metric {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: rgba(0, 114, 188, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.tree-children {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tree-children .data-cards.compact {
+  margin-bottom: 10px;
+}
+
+.tree-child-section {
+  margin-top: 10px;
+}
+
+.tree-child-header {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.tree-child-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tree-child-nodes .tree-node {
+  min-width: unset;
+  flex: unset;
+  max-width: 100%;
+}
+
+.tree-child-nodes .tree-node .tree-children {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Nested model nodes styling */
+.model-node {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.model-node:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.model-node .tree-metric {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+/* Station node styling */
+.station-node {
+  background: rgba(79, 70, 229, 0.03);
+}
+
+.station-node:hover {
+  border-color: rgba(79, 70, 229, 0.3);
+}
+
+/* Light theme overrides for tree view */
+:root.light-theme .tree-level.plant-level {
+  background: linear-gradient(135deg, rgba(0, 114, 188, 0.06), rgba(0, 114, 188, 0.02));
+}
+
+:root.light-theme .tree-node {
+  background: #ffffff;
+}
+
+:root.light-theme .tree-children {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+:root.light-theme .tree-id {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 /* ── Chart Block (Collapsible) ── */

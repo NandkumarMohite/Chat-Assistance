@@ -327,13 +327,9 @@ function preprocessMessage(message, registry) {
     `\\d{4}[./-]\\d{1,2}[./-]\\d{1,2}`,
     `\\d{1,2}[./ -]\\d{1,2}[./ -]\\d{4}`,
     `\\d{1,2}\\s+${monthToken},?\\s+\\d{4}`,
-    `${monthToken}\\s+\\d{1,2},?\\s+\\d{4}`,
-    `\\d{1,2}[-/.]${monthToken}[-/.]\\d{4}`,
-    `${monthToken}[-/.]\\d{1,2}[-/.]\\d{4}`
+    `${monthToken}\\s+\\d{1,2},?\\s+\\d{4}`
   ].join('|');
   const explicitDateRangeRe = new RegExp(`\\bfrom\\s+(${explicitDateToken})\\s+to\\s+(${explicitDateToken})\\b`, 'i');
-  const timeToken = `\\d{1,2}[:.]\\d{2}(?:\\s*(?:am|pm))?`;
-  const dateTimeRangeRe = new RegExp(`(?:\\bon\\s+)?(${explicitDateToken})\\s+from\\s+(${timeToken})\\s+to\\s+(${timeToken})\\b`, 'i');
   
   // Extract station IDs
   const stationMatches = message.match(/station\s*(?:id\s*)?(\d+)/gi) || [];
@@ -345,8 +341,7 @@ function preprocessMessage(message, registry) {
     today: /\btoday\b/i,
     lastNUnits: /\blast\s+(\d+)\s+(hour|day|week|month|year)s?\b/i,
     nAgo: /\b(\d+)\s+(hour|day|week|month|year)s?\s+ago\b/i,
-    dateRange: explicitDateRangeRe,
-    dateTimeRange: dateTimeRangeRe
+    dateRange: explicitDateRangeRe
   };
   
   const extractedDates = {};
@@ -369,11 +364,7 @@ function preprocessMessage(message, registry) {
     routingHints.push(`stationIds=${stationIds.join(',')}`);
   }
 
-  if (extractedDates.dateTimeRange) {
-    const [full, datePart, startTime, endTime] = extractedDates.dateTimeRange;
-    routingHints.push(`startDate=${datePart} ${startTime}`);
-    routingHints.push(`endDate=${datePart} ${endTime}`);
-  } else if (extractedDates.dateRange) {
+  if (extractedDates.dateRange) {
     routingHints.push(`from=${extractedDates.dateRange.from}`);
     routingHints.push(`to=${extractedDates.dateRange.to}`);
   } else if (extractedDates.yesterday) {
@@ -425,6 +416,28 @@ function logRoutingDecision(routingDecision) {
   }
 }
 
+/**
+ * Resolve an apiId that the LLM picked but that is not registered as a top-level API.
+ * Search every registered API's `relatedAPIs` array; if the unknown id appears there,
+ * return the parent API's id (i.e. the API that owns that related entry).
+ *
+ * @param {string} unknownApiId - The apiId returned by the LLM that wasn't found in any registry
+ * @param {Array<Object>} apiLists - One or more arrays of API definitions to search through
+ * @returns {string|null} The parent API id, or null if no match found
+ */
+function resolveApiIdFromRelated(unknownApiId, ...apiLists) {
+  if (!unknownApiId) return null;
+  for (const apis of apiLists) {
+    if (!Array.isArray(apis)) continue;
+    for (const api of apis) {
+      if (Array.isArray(api.relatedAPIs) && api.relatedAPIs.includes(unknownApiId)) {
+        return api.id;
+      }
+    }
+  }
+  return null;
+}
+
 module.exports = {
   expandSynonyms,
   normalizeQueryParams,
@@ -433,5 +446,6 @@ module.exports = {
   findAPIsByCategory,
   preprocessMessage,
   logRoutingDecision,
+  resolveApiIdFromRelated,
   DEFAULT_DATE_ALIASES
 };

@@ -13,4 +13,7 @@ module.exports = {
   BACKEND_URL:     process.env.BACKEND_URL  || 'http://localhost:8080/api/v1',
   PORT:            process.env.PORT         || 3000,
   TEST_LOCALLY:    process.env.TEST_LOCALLY === 'true',
+  // Default timezone for date parsing (e.g., 'Asia/Kolkata' for IST, 'America/New_York' for EST)
+  // If not set, uses the client's browser timezone or falls back to UTC
+  DEFAULT_TIMEZONE: process.env.DEFAULT_TIMEZONE || null,
 };

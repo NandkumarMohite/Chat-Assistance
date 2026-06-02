@@ -120,14 +120,7 @@ function setupEventListeners() {
   newChatBtn.addEventListener('click', clearChat);
   clearChatBtn.addEventListener('click', clearChat);
 
-  mobileMenuBtn.addEventListener('click', () => {
-    if (sidebar.classList.contains('collapsed')) {
-      sidebar.classList.remove('collapsed');
-    } else {
-      sidebar.classList.toggle('mobile-open');
-    }
-  });
-  
+  mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('mobile-open'));
   sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
 
   themeToggleBtn.addEventListener('click', () => {
@@ -210,6 +203,7 @@ async function sendMessage() {
     div.innerHTML = `<div class="step-spinner"></div><span>${text}</span>`;
     statusSteps.appendChild(div);
     currentStep = div;
+    // Do not auto-expand steps dropdown; stays hidden until user clicks
     scrollToBottom();
   }
 
@@ -315,7 +309,9 @@ async function sendMessage() {
       case 'data':
         if (data.rows && data.rows.length > 0) {
           console.log('📊 Received data event with metadata:', data.metadata);
-          renderTable(dataBlock, data.rows);
+          // Pass displayData from metadata if present
+          const displayData = data.metadata && data.metadata.displayData ? data.metadata.displayData : null;
+          renderTable(dataBlock, data.rows, displayData);
           renderRawJson(dataBlock, data.rows);
           setupChartBlock(dataBlock, data.rows);
           setupAnalyzeBlock(dataBlock, data.rows, data.metadata); // Pass metadata for period comparison
@@ -347,18 +343,34 @@ async function sendMessage() {
 }
 
 // ── Smart Data Renderer ──
-function renderTable(container, rows) {
+
+// Accepts optional displayData param to force table/card/tree
+function renderTable(container, rows, displayData = null) {
   const tableContainer = container.querySelector('.table-scroll');
   if (!rows.length) return;
 
   const data = rows.length === 1 ? rows[0] : rows;
 
-  // Detect data pattern and render appropriately
-  const html = detectAndRender(data);
+  // Detect data pattern and render appropriately, or force by displayData
+  const html = detectAndRender(data, displayData);
   tableContainer.innerHTML = html;
 }
 
-function detectAndRender(data) {
+// Accepts optional displayData param to force table/card/tree
+function detectAndRender(data, displayData = null) {
+  if (displayData) {
+    switch (displayData) {
+      case 'table':
+        return renderFlatTable(Array.isArray(data) ? data : [data]);
+      case 'card':
+        return renderSmartObject(Array.isArray(data) ? data[0] : data); // cards for scalars
+      case 'tree':
+        return renderTreeView(Array.isArray(data) ? data[0] : data);
+      default:
+        // fallback to auto-detect
+        break;
+    }
+  }
   // Array of flat objects → simple table
   if (Array.isArray(data) && data.length > 0 && isFlat(data[0])) {
     return renderFlatTable(data);
@@ -385,6 +397,11 @@ function isFlat(obj) {
 
 function renderSmartObject(obj) {
   let html = '';
+
+  // Check if this is tree-view data (has lineHierarchies or similar structure)
+  if (obj.lineHierarchies || obj.componentMetrics || obj.stationMatrics) {
+    return renderTreeView(obj);
+  }
 
   // Separate scalar fields, name-value arrays, nested arrays, and nested objects
   const scalars = {};
@@ -460,6 +477,167 @@ function renderSmartObject(obj) {
 
   return html || '<table class="data-table"><tbody><tr><td>No displayable data</td></tr></tbody></table>';
 }
+
+// ── Tree View Renderer for hierarchical data ──
+function renderTreeView(obj) {
+  let html = '';
+  const treeId = 'tree_' + Math.random().toString(36).substr(2, 9);
+  
+  // Extract plant-level metrics
+  const plantMetrics = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value !== 'object' || value === null) {
+      if (key !== 'message' && key !== 'unit') {
+        plantMetrics[key] = value;
+      }
+    }
+  }
+
+  // Render plant-level summary cards
+  if (Object.keys(plantMetrics).length > 0) {
+    html += '<div class="tree-level plant-level">';
+    html += '<div class="tree-node-header plant-header">';
+    html += '<span class="tree-icon">🏭</span>';
+    html += '<span class="tree-label">Plant Overview</span>';
+    html += '</div>';
+    html += '<div class="data-cards">';
+    for (const [key, value] of Object.entries(plantMetrics)) {
+      html += `<div class="data-card"><div class="data-card-value">${escHtml(formatDisplayValue(key, value))}</div><div class="data-card-label">${escHtml(formatFieldLabel(key))}</div></div>`;
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+
+  // Render line hierarchies as expandable tree
+  const lines = obj.lineHierarchies || [];
+  if (lines.length > 0) {
+    html += '<div class="tree-section">';
+    html += '<div class="tree-section-header">📊 Lines Breakdown</div>';
+    html += '<div class="tree-lines-row">';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineId = `${treeId}_line_${i}`;
+      html += renderTreeNode(line, 'line', lineId);
+    }
+    
+    html += '</div></div>';
+  }
+
+  // Fallback: render stationMatrics or componentMetrics directly if no lineHierarchies
+  if (lines.length === 0) {
+    const stations = obj.stationMatrics || obj.componentMetrics || [];
+    if (stations.length > 0) {
+      html += '<div class="tree-section">';
+      html += '<div class="tree-section-header">🔧 Stations</div>';
+      html += '<div class="tree-lines-row">';
+      
+      for (let i = 0; i < stations.length; i++) {
+        const station = stations[i];
+        const stationId = `${treeId}_station_${i}`;
+        html += renderTreeNode(station, 'station', stationId);
+      }
+      
+      html += '</div></div>';
+    }
+  }
+
+  return html || '<div class="data-cards"><div class="data-card"><div class="data-card-value">No data</div></div></div>';
+}
+
+function renderTreeNode(node, type, nodeId) {
+  const icon = type === 'line' ? '📦' : type === 'station' ? '🔧' : '🚗';
+  const name = node.lineName || node.stationName || node.modelName || node.modelId || 'Unknown';
+  const id = node.lineId || node.stationId || node.componentId || '';
+  
+  // Get metrics (exclude nested arrays and identifiers)
+  const metrics = {};
+  const children = [];
+  
+  for (const [key, value] of Object.entries(node)) {
+    if (['lineId', 'stationId', 'componentId', 'lineName', 'stationName', 'modelName', 'modelId', 'isLastStation'].includes(key)) continue;
+    
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+      children.push({ key, items: value });
+    } else if (typeof value !== 'object') {
+      metrics[key] = value;
+    }
+  }
+  
+  const hasChildren = children.length > 0;
+  
+  let html = `<div class="tree-node ${type}-node" data-node-id="${nodeId}">`;
+  html += `<div class="tree-node-clickable${hasChildren ? ' expandable' : ''}" onclick="${hasChildren ? `toggleTreeNode('${nodeId}')` : ''}">`;
+  html += `<span class="tree-expand-icon">${hasChildren ? '▶' : '•'}</span>`;
+  html += `<span class="tree-icon">${icon}</span>`;
+  html += `<span class="tree-label">${escHtml(name)}</span>`;
+  if (id) html += `<span class="tree-id">ID: ${id}</span>`;
+  
+  // Show key metrics inline
+  const keyMetricNames = ['oee', 'availablity', 'availability', 'performance', 'quality', 'avgCycleTime', 'totalCycles'];
+  const inlineMetrics = Object.entries(metrics).filter(([k]) => keyMetricNames.some(m => k.toLowerCase().includes(m.toLowerCase())));
+  if (inlineMetrics.length > 0) {
+    html += '<span class="tree-inline-metrics">';
+    for (const [key, value] of inlineMetrics.slice(0, 4)) {
+      html += `<span class="tree-metric">${formatDisplayValue(key, value)}</span>`;
+    }
+    html += '</span>';
+  }
+  
+  html += '</div>';
+  
+  // Expandable content
+  if (hasChildren) {
+    html += `<div class="tree-children" id="${nodeId}_children" style="display: none;">`;
+    
+    // Show all metrics as cards
+    if (Object.keys(metrics).length > 0) {
+      html += '<div class="data-cards compact">';
+      for (const [key, value] of Object.entries(metrics)) {
+        html += `<div class="data-card mini"><div class="data-card-value">${escHtml(formatDisplayValue(key, value))}</div><div class="data-card-label">${escHtml(formatFieldLabel(key))}</div></div>`;
+      }
+      html += '</div>';
+    }
+    
+    // Render child nodes
+    for (const child of children) {
+      const childType = child.key.toLowerCase().includes('station') ? 'station' : 
+                        child.key.toLowerCase().includes('model') ? 'model' : 'item';
+      const childIcon = childType === 'station' ? '🔧' : childType === 'model' ? '🚗' : '📄';
+      
+      html += `<div class="tree-child-section">`;
+      html += `<div class="tree-child-header">${childIcon} ${formatFieldLabel(child.key)} (${child.items.length})</div>`;
+      html += '<div class="tree-child-nodes">';
+      
+      for (let i = 0; i < child.items.length; i++) {
+        html += renderTreeNode(child.items[i], childType, `${nodeId}_${childType}_${i}`);
+      }
+      
+      html += '</div></div>';
+    }
+    
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+// Global function to toggle tree nodes
+window.toggleTreeNode = function(nodeId) {
+  const childrenEl = document.getElementById(nodeId + '_children');
+  const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
+  const expandIcon = nodeEl?.querySelector('.tree-expand-icon');
+  
+  if (childrenEl) {
+    const isExpanded = childrenEl.style.display !== 'none';
+    childrenEl.style.display = isExpanded ? 'none' : 'block';
+    if (expandIcon) {
+      expandIcon.textContent = isExpanded ? '▶' : '▼';
+    }
+    nodeEl?.classList.toggle('expanded', !isExpanded);
+  }
+};
 
 function renderHierarchicalArray(items) {
   if (!items.length) return '';

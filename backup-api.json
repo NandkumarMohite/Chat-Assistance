@@ -1,0 +1,716 @@
+[
+        {
+      "id": "get_time_between_cycles",
+      "name": "Get Time Between Cycles",
+      "category": "cycle_time",
+      "priority": 3,
+      "disambiguationHints": [
+        "Use for time GAP between cycles, not cycle duration",
+        "Good for 'time between cycles', 'cycle intervals', 'gap between production'",
+        "Returns duration arrays showing inter-cycle timing",
+        "Different from get_cycle_times which measures cycle duration itself"
+      ],
+      "description": "Retrieves the average aggregation of time between production cycles for one or more stations within a given time interval. Supports filtering by model, aggregation level, pagination, and optional aggregation mode.",
+      "method": "GET",
+      "path": "/bff/time-between-cycles",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma seperated String of station IDs to retrieve cycle time data for."
+        },
+        {
+          "name": "model",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model identifier used to filter cycle data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time of the interval for retrieving cycle aggregation data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time of the interval for retrieving cycle aggregation data."
+        },
+        {
+          "name": "aggLevel",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Aggregation level used for grouping cycle data (e.g. hourly, daily, weekly)."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated cycle information. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "duration": [
+            45,
+            50,
+            47
+          ],
+          "max": [
+            55
+          ],
+          "min": [
+            40
+          ],
+          "std": [
+            3
+          ],
+          "nCycles": 120
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/time-between-cycles?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z&aggLevel=hourly",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/time-between-cycles?stations=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z&aggLevel=daily&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/time-between-cycles?stations=1&model=MODEL_A&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=weekly",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "time between cycles",
+        "cycle time",
+        "cycle aggregation",
+        "production cycles",
+        "station cycles",
+        "average cycle duration",
+        "cycle statistics",
+        "manufacturing analytics",
+        "cycle performance",
+        "time aggregation",
+        "station production metrics",
+        "cycle duration",
+        "max cycle time",
+        "min cycle time",
+        "number of cycles"
+      ],
+      "responseHints": [
+        "duration (array of cycle durations)",
+        "max (maximum cycle time)",
+        "min (minimum cycle time)",
+        "std (standard deviation)",
+        "nCycles (total number of cycles)"
+      ]
+    },
+        {
+      "id": "get_cycle_times",
+      "name": "Get Cycle Times",
+      "category": "cycle_time",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for station-level cycle time aggregation",
+        "Good for 'cycle times for station X', 'average cycle duration'",
+        "Returns duration arrays, max/min/std statistics",
+        "NOT for plant-wide view - use get_tree_view_of_cycle_time instead"
+      ],
+      "description": "Retrieves average cycle-time aggregation data for one or more sources within a specified time interval, including duration statistics, reference cycle time, exceeded cycles, and total cycle counts.",
+      "method": "GET",
+      "path": "/bff/cycle-times",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of station IDs to retrieve cycle-time data for."
+        },
+        {
+          "name": "model",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model identifier used to filter cycle-time data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get the cycle time starting from this date/time."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Get the cycle time ending at this date/time."
+        },
+        {
+          "name": "aggLevel",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Aggregation level used for grouping cycle-time data (e.g. hourly, daily, weekly)."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated cycle-time data. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "refCycleTime": 45,
+          "duration": [
+            42,
+            46,
+            44
+          ],
+          "max": [
+            50
+          ],
+          "min": [
+            40
+          ],
+          "std": [
+            3
+          ],
+          "nexceedCycles": 5,
+          "nCycles": 120
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/cycle-times?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-times?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-times?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle-time data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "cycle times",
+        "cycle-time aggregation",
+        "average cycle time",
+        "cycle duration",
+        "reference cycle time",
+        "production cycle metrics",
+        "cycle statistics",
+        "exceeded cycles",
+        "manufacturing analytics",
+        "source cycle data",
+        "production performance",
+        "max cycle time",
+        "min cycle time",
+        "standard deviation",
+        "This Api will give how many cycle exceeded the reference cycle time for each model"
+      ],
+      "responseHints": [
+        "duration (array of cycle times)",
+        "max (maximum cycle time)",
+        "min (minimum cycle time)",
+        "std (standard deviation)",
+        "refCycleTime (reference/target cycle time)",
+        "ncycles (total cycles)",
+        "nExceededCycles (cycles exceeding reference)"
+      ]
+    },
+        {
+      "id": "get_line_oee_report_data",
+      "name": "Get Line OEE Report Data",
+      "description": "Retrieves OEE reporting data for a production line and its stations. The API provides OEE trends distributed over time in daily, weekly, and monthly formats, including reference OEE values for comparison.",
+      "method": "GET",
+      "path": "/bff/get-line-oee-report-data",
+      "parameters": [
+        {
+          "name": "Line",
+          "in": "query",
+          "type": "integer",
+          "required": false,
+          "description": "Line ID for which OEE reporting data is requested."
+        },
+        {
+          "name": "LineName",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Name of the production line."
+        },
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "array[integer]",
+          "required": false,
+          "description": "List of station IDs used to filter station-level OEE reporting data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time for retrieving OEE reporting data."
+        }
+      ],
+      "responseExample": {
+        "lineId": 1,
+        "lineName": "Assembly Line 1",
+        "selectedDate": "2026-05-14T11:06:07.819Z",
+        "range": {
+          "startDate": "2026-05-01T00:00:00Z",
+          "to": "2026-05-31T23:59:59Z"
+        },
+        "lineOeeOverview": {
+          "daily": {
+            "range": "Last 7 Days",
+            "data": [
+              {
+                "date": "2026-05-10",
+                "week": "Week 19",
+                "month": "May",
+                "rangeLabel": "Day",
+                "oee": 84.5,
+                "referenceOee": 90
+              }
+            ]
+          },
+          "weekly": {
+            "range": "Last 4 Weeks",
+            "data": [
+              {
+                "date": "2026-W19",
+                "week": "Week 19",
+                "month": "May",
+                "rangeLabel": "Week",
+                "oee": 85.2,
+                "referenceOee": 90
+              }
+            ]
+          },
+          "monthly": {
+            "range": "Last 12 Months",
+            "data": [
+              {
+                "date": "2026-05",
+                "week": "",
+                "month": "May",
+                "rangeLabel": "Month",
+                "oee": 86.1,
+                "referenceOee": 90
+              }
+            ]
+          }
+        },
+        "stations": [
+          {
+            "stationId": 101,
+            "stationName": "Station A",
+            "oeeOverview": {
+              "daily": {
+                "range": "Last 7 Days",
+                "data": [
+                  {
+                    "date": "2026-05-10",
+                    "week": "Week 19",
+                    "month": "May",
+                    "rangeLabel": "Day",
+                    "oee": 83.4,
+                    "referenceOee": 88
+                  }
+                ]
+              },
+              "weekly": {
+                "range": "Last 4 Weeks",
+                "data": [
+                  {
+                    "date": "2026-W19",
+                    "week": "Week 19",
+                    "month": "May",
+                    "rangeLabel": "Week",
+                    "oee": 84.1,
+                    "referenceOee": 88
+                  }
+                ]
+              },
+              "monthly": {
+                "range": "Last 12 Months",
+                "data": [
+                  {
+                    "date": "2026-05",
+                    "week": "",
+                    "month": "May",
+                    "rangeLabel": "Month",
+                    "oee": 85.3,
+                    "referenceOee": 88
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101,102",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/get-line-oee-report-data?Line=1&LineName=AssemblyLine1&stationIds=101&startDate=2026-05-01T00:00:00Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No OEE reporting data found for the specified line or stations"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "line oee report",
+        "oee reporting",
+        "line oee overview",
+        "station oee report",
+        "daily oee",
+        "weekly oee",
+        "monthly oee",
+        "oee trends",
+        "production line analytics",
+        "oee dashboard",
+        "reference oee",
+        "station oee overview",
+        "manufacturing reports",
+        "oee time series"
+      ],
+      "responseHints": [
+        "lineOeeOverview (overall line OEE trends)",
+        "daily (daily OEE spread)",
+        "weekly (weekly OEE spread)",
+        "monthly (monthly OEE spread)",
+        "stations (station-wise OEE reporting)",
+        "referenceOee (target/reference OEE value)",
+        "range (selected reporting date range)"
+      ]
+    },
+        {
+      "id": "get_cycle_operations",
+      "name": "Get Cycle Operations",
+      "description": "Retrieves average aggregation data for cycle operations within a specified time interval, including operation execution metrics such as mean operation time, delta values, maximum/minimum durations, standard deviation, exceeded operation counts, and total cycles.",
+      "method": "GET",
+      "path": "/bff/operations-analysis",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of station IDs used to retrieve operation analysis data."
+        },
+        {
+          "name": "model",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Model identifier used to filter operation analysis data."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time interval for retrieving cycle operation analysis."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time interval for retrieving cycle operation analysis."
+        },
+        {
+          "name": "aggLevel",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Aggregation level used for grouping operation analysis data (e.g. hourly, daily, weekly)."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated operation analysis data. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "opId": 1001,
+          "refOpTime": 30,
+          "mean": [
+            28,
+            29,
+            31
+          ],
+          "delta": [
+            -2,
+            -1,
+            1
+          ],
+          "max": [
+            35
+          ],
+          "min": [
+            25
+          ],
+          "std": [
+            2
+          ],
+          "nexceedOpTime": 4,
+          "nCycles": 120
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/operations-analysis?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/operations-analysis?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggLevel=daily&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/operations-analysis?stationIds=1&model=MODEL_A&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No operation analysis data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "operations analysis",
+        "cycle operations",
+        "operation aggregation",
+        "operation metrics",
+        "operation analysis",
+        "operation time",
+        "reference operation time",
+        "operation statistics",
+        "production operations",
+        "manufacturing analytics",
+        "cycle operation performance",
+        "operation exceed counts",
+        "mean operation time",
+        "delta operation"
+      ],
+      "responseHints": [
+        "opName (operation name)",
+        "meanOpTime (average operation time)",
+        "deltaOpTime (variation from reference)",
+        "max (maximum operation time)",
+        "min (minimum operation time)",
+        "std (standard deviation)",
+        "nexceedOpTime (operations exceeding reference)",
+        "nCycles (total cycles)"
+      ]
+    },
+    
+    {
+      "id": "get_overall_cycle_counts", 
+      "name": "Get Overall Cycle Counts",
+      "category": "quality",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for OK/NOK cycle counts and quality metrics",
+        "Best for 'good cycles', 'bad cycles', 'ok cycles', 'nok cycles'",
+        "Returns ok_cycles, nok_cycles, totalDuration",
+        "Use for production quality analysis"
+      ],
+      "description": "Retrieves aggregated cycle count statistics for one or more sources within a specified time interval, including OK/NOK cycles, rework-free cycles, total durations, and reference cycle times.",
+      "method": "GET",
+      "path": "/bff/cycle-overall-count",
+      "parameters": [
+        {
+          "name": "stationIds",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Comma separated string of source IDs to retrieve overall cycle count data for."
+        },
+        {
+          "name": "startDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "Start date/time interval for retrieving cycle count aggregation data."
+        },
+        {
+          "name": "endDate",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "End date/time interval for retrieving cycle count aggregation data."
+        },
+        {
+          "name": "aggregate",
+          "in": "query",
+          "type": "boolean",
+          "required": false,
+          "description": "If true, returns aggregated cycle count data. Default value is false."
+        }
+      ],
+      "responseExample": [
+        {
+          "stationId": 1,
+          "modelId": "MODEL_A",
+          "totalDuration": 5400,
+          "totalTimeNoRework": 5000,
+          "ok_cycles": 120,
+          "nok_cycles": 5,
+          "ok_NoReworkCycles": 118,
+          "nok_NoReworkCycles": 2,
+          "refCycleTime": 45,
+          "startTime": "2026-05-14T05:23:24.333Z",
+          "endTime": "2026-05-14T06:23:24.333Z",
+          "ncycles": 125
+        }
+      ],
+      "possible_API_structure": [
+        {
+          "URL": "baseURL/bff/cycle-overall-count?startDate=2026-05-01T00:00:00Z&endDate=2026-05-02T00:00:00Z",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=1,2&startDate=2026-05-01T00:00:00Z&endDate=2026-05-31T23:59:59Z&aggregate=true",
+          "method": "GET"
+        },
+        {
+          "URL": "baseURL/bff/cycle-overall-count?stationIds=5&startDate=2026-05-10T00:00:00Z&endDate=2026-05-10T23:59:59Z",
+          "method": "GET"
+        }
+      ],
+      "errorResponses": [
+        {
+          "code": 400,
+          "description": "Invalid request parameters or missing required fields"
+        },
+        {
+          "code": 404,
+          "description": "No cycle count data found for the specified filters"
+        },
+        {
+          "code": 500,
+          "description": "Server error"
+        }
+      ],
+      "keywords": [
+        "overall cycle counts",
+        "cycle aggregation",
+        "ok cycles",
+        "nok cycles",
+        "good cycles",
+        "bad cycles",
+        "cycle time",
+        "Worst/Good/Best Station",
+        "Worst/Good/Best/ Slowest/fastest Cycle time",
+        "rework cycles",
+        "production cycle count",
+        "cycle statistics",
+        "source cycle metrics",
+        "manufacturing analytics",
+        "cycle duration",
+        "reference cycle time",
+        "production monitoring",
+        "total cycles",
+        "cycle quality",
+        "This api will give you cycle time for all stations and all models",
+        "compare Multiple models",
+        "compare Multiple Station"
+      ],
+      "level": ["Multi Station", "Multi Model"],
+      "canBeUsedFor": ["for Single model analysis for over the time range"],
+
+      "responseHints": [
+        "ok_cycles (good/successful cycles)",
+        "nok_cycles (failed/bad cycles)",
+        "totalDuration (total production time)",
+        "ncycles (total number of cycles)",
+        "refCycleTime (reference/target cycle time)",
+        "ok_NoReworkCycles (good cycles without rework)"
+      ]
+    }
+]
