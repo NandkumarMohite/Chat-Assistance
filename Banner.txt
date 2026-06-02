@@ -12,8 +12,8 @@ ____________________________________________________________________
 
 
 
-nvidia-smi
-Tue Jun  2 17:09:05 2026       
+nvidia-smi                                                                                 
+Tue Jun  2 17:19:24 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 610.47                 KMD Version: 610.47        CUDA UMD Version: 13.3     |
 +-----------------------------------------+------------------------+----------------------+
@@ -22,7 +22,7 @@ Tue Jun  2 17:09:05 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce GTX 1650      WDDM  |   00000000:01:00.0 Off |                  N/A |
-| N/A   59C    P8              1W /   50W |    1485MiB /   4096MiB |      0%      Default |
+| N/A   57C    P8              1W /   50W |      41MiB /   4096MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -35,3 +35,34 @@ Tue Jun  2 17:09:05 2026
 |    0   N/A  N/A           16520      C   ...al\Programs\Ollama\ollama.exe      N/A      |
 |    0   N/A  N/A           36612    C+G   ...SnippingTool\SnippingTool.exe      N/A      |
 +-----------------------------------------------------------------------------------------+
+PS C:\Users\nbmoh\OneDrive\Desktop\Chat AI> docker ps -s
+CONTAINER ID   IMAGE                                          COMMAND                  CREATED          STATUS          PORTS                                             NAMES                SIZE
+5e29239d9593   nandkumarmohite/comauchatassistant:0.0.1_T11   "docker-entrypoint.s…"   25 seconds ago   Up 23 seconds   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp       comauchatassistant   90.1kB (virtual 161MB)
+912085c69ded   ollama/ollama:latest                           "/bin/ollama serve"      25 seconds ago   Up 24 seconds   0.0.0.0:11434->11434/tcp, [::]:11434->11434/tcp   ollama-service       111kB (virtual 6.56GB)
+PS C:\Users\nbmoh\OneDrive\Desktop\Chat AI> docker ps -a
+CONTAINER ID   IMAGE                                          COMMAND                  CREATED          STATUS                     PORTS                                              NAMES
+5e29239d9593   nandkumarmohite/comauchatassistant:0.0.1_T11   "docker-entrypoint.s…"   29 seconds ago   Up 28 seconds              0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp        comauchatassistant
+912085c69ded   ollama/ollama:latest                           "/bin/ollama serve"      29 seconds ago   Up 29 seconds              0.0.0.0:11434->11434/tcp, [::]:11434->11434/tcp    ollama-service
+1fad7fb3e851   ollama-chat-ai                                 "/usr/src/app/start.…"   3 weeks ago      Created                                                                       strange_rosalind
+d2e92a4e69ac   ollama-chat-ai                                 "/usr/src/app/start.…"   3 weeks ago      Exited (255) 3 weeks ago   0.0.0.0:3000->3000/tcp, 0.0.0.0:11434->11434/tcp   interesting_jepsen
+31ac106e0ebd   49e0b4856548                                   "/bin/ollama ./start…"   3 weeks ago      Exited (1) 3 weeks ago                                                        adoring_swanson
+94ead48e6d33   49e0b4856548                                   "/bin/ollama ./start…"   3 weeks ago      Exited (1) 3 weeks ago                                                        sleepy_chebyshev
+4fe038c51444   52534a2763f1                                   "docker-entrypoint.s…"   3 weeks ago      Exited (0) 3 weeks ago                                                        pensive_nash
+3fc78f5cdf3f   52534a2763f1                                   "docker-entrypoint.s…"   3 weeks ago      Created                                                                       great_ride
+9be225b72299   52534a2763f1                                   "docker-entrypoint.s…"   3 weeks ago      Exited (0) 3 weeks ago                                                        infallible_jang
+ca60fec5eab3   e62d7fb115ac                                   "docker-entrypoint.s…"   3 weeks ago      Exited (0) 3 weeks ago                                                        gallant_napier
+f85615a6c499   e62d7fb115ac                                   "docker-entrypoint.s…"   3 weeks ago      Exited (0) 3 weeks ago                                                        silly_morse
+f82d297d2517   e62d7fb115ac                                   "docker-entrypoint.s…"   3 weeks ago      Exited (0) 3 weeks ago                                                        eloquent_banach
+9356e1eb7f1b   e62d7fb115ac                                   "docker-entrypoint.s…"   3 weeks ago      Exited (0) 3 weeks ago                                                        practical_cerf
+3431dfc10378   4d9a36d5353f                                   "java -jar app.jar"      6 weeks ago      Exited (130) 6 weeks ago                                                      happy_feistel
+3358ad47160d   b227b96e510f                                   "java -jar app.jar"      6 weeks ago      Created                                                                       condescending_herschel
+c74aaf9e9260   af238224f348                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      magical_mclean
+5e3c92d5c6d3   c60dae7e0a0d                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      intelligent_mcnulty
+b26b38cefa01   c60dae7e0a0d                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      compassionate_chatelet
+27b25119510d   8c52675ae289                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      quirky_robinson
+e82f610709bd   2f37dbd43e77                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      boring_allen
+5eaa0f89b944   9c258c0d793e                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      nostalgic_robinson
+d5c4b060839b   3816ac8950fc                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      romantic_morse
+305e602fac41   45943e2a17fb                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      practical_yonath
+a7c928ff6232   012bc865ac38                                   "java -jar app.jar"      7 weeks ago      Exited (130) 7 weeks ago                                                      jolly_northcutt
+PS C:\Users\nbmoh\OneDrive\Desktop\Chat AI> 
