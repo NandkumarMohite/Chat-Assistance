@@ -107,15 +107,36 @@ RULES:
   IMPORTANT: Always select the API id from the registered list above. Never create or guess an API id.
   
   LEVEL → API MAPPING EXAMPLES:
-  | User Query | Level Needed | API to Use |
-  |------------|--------------|------------|
-  | "OEE for station 1" | Station | get_oee_parameters |
-  | "availability for station 5" | Station | get_oee_parameters |
-  | "cycle time for all stations" | Multi Station | get_tree_view_of_cycle_time |
-  | "which station is slowest" | Multi Station | get_tree_view_of_cycle_time |
-  | "compare stations 1 and 2" | Multi Station | get_overall_cycle_counts |
-  | "ok/nok cycles" | Multi Station, Multi Model | get_overall_cycle_counts |
-  | "full plant cycle time" | Multi Line, Multi Station | get_tree_view_of_cycle_time |
+  
+  **OEE QUERIES:**
+  | User Query | Level | API | Why |
+  |------------|-------|-----|-----|
+  | "OEE for station 1" | Station | get_oee_parameters | Single station → use station-level API |
+  | "availability for station 5" | Station | get_oee_parameters | Availability is part of OEE params |
+  | "full plant OEE" | Multi | get_tree_view_of_oee_data | Plant-wide → hierarchical API |
+  | "OEE for all stations" | Multi | get_tree_view_of_oee_data | All stations → hierarchical API |
+  | "compare OEE across lines" | Multi | get_tree_view_of_oee_data | Comparison → hierarchical API |
+  | "worst OEE station" | Multi | get_tree_view_of_oee_data | Finding best/worst → need all data |
+  
+  **CYCLE TIME QUERIES:**
+  | User Query | Level | API | Why |
+  |------------|-------|-----|-----|
+  | "cycle time for all stations" | Multi | get_tree_view_of_cycle_time | All stations → hierarchical |
+  | "full plant cycle time" | Multi | get_tree_view_of_cycle_time | Plant-wide → hierarchical |
+  | "which station is slowest" | Multi | get_tree_view_of_cycle_time | Comparison → need all data |
+  | "cycle time by model" | Multi | get_tree_view_of_cycle_time | Model-level breakdown |
+  
+  **QUALITY QUERIES:**
+  | User Query | Level | API | Why |
+  |------------|-------|-----|-----|
+  | "quality for station 1" | Station | get_station_quality | Single station quality |
+  | "good/bad cycles for station 5" | Station | get_station_quality | Quality includes cycle counts |
+  
+  **PERFORMANCE QUERIES:**
+  | User Query | Level | API | Why |
+  |------------|-------|-----|-----|
+  | "performance for station 1" | Station | get_performance_and_productivity | Single station performance |
+  | "productivity by model" | Station | get_performance_and_productivity | Model-wise breakdown |
 - If the user identifies an entity by phone, email, or name (not by ID), and a DEPENDENCY CHAIN exists for it, set chainId to that chain's id instead of apiId.
 - Available dependency chains:
 ${chainDescriptions}
@@ -329,15 +350,6 @@ Each entry: stationId, modelId, duration[], max[], min[], std[], nCycles
 PRESENTATION FORMAT:
 | Station | Model | Avg Gap (s) | Max Gap (s) | Min Gap (s) | Total Cycles |
 Summary: "Longest gap: Station X at Ys"`,
-
-  get_overall_cycle_counts: `
-JSON STRUCTURE GUIDE (Overall Cycle Counts):
-Each entry: stationId, modelId, ok_cycles, nok_cycles, totalDuration, ncycles, refCycleTime
-
-PRESENTATION FORMAT:
-| Station | Model | OK Cycles | NOK Cycles | Total | Quality Rate (%) |
-(Calculate quality rate: ok_cycles / ncycles * 100)
-Summary: "Worst quality: Station X, Model Y with Z NOK cycles (W%)"`,
 
   get_performance_and_productivity: `
 JSON STRUCTURE GUIDE (Performance & Productivity):
