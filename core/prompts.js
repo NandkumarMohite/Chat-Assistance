@@ -149,6 +149,19 @@ RULES:
   | Quality | get_station_quality | get_tree_view_of_oee_data |
   | Performance | get_performance_and_productivity | get_tree_view_of_oee_data |
   | Best/Worst comparison | N/A | Use tree view APIs |
+
+  **CRITICAL MULTI-STATION ROUTING RULES:**
+  ⚠️ If user asks for "all stations" or "plant-wide" quality/performance, you MUST use get_tree_view_of_oee_data
+  ⚠️ Single-station APIs (get_station_quality, get_performance_and_productivity) CANNOT handle multi-station queries
+  ⚠️ get_tree_view_of_oee_data contains: OEE, availability, performance, AND quality for all stations
+  
+  **CROSS-CATEGORY ROUTING EXAMPLES:**
+  - "quality for all stations" → get_tree_view_of_oee_data (NOT get_station_quality - that's single station only)
+  - "performance for all stations" → get_tree_view_of_oee_data (NOT get_performance_and_productivity)
+  - "worst quality station" → get_tree_view_of_oee_data (need all stations to find worst)
+  - "best performance station" → get_tree_view_of_oee_data (need all stations to compare)
+  - "compare quality across stations" → get_tree_view_of_oee_data (multi-station comparison)
+  - "productivity for station 1" → get_performance_and_productivity (single station = single station API)
 - If the user identifies an entity by phone, email, or name (not by ID), and a DEPENDENCY CHAIN exists for it, set chainId to that chain's id instead of apiId.
 - Available dependency chains:
 ${chainDescriptions}
@@ -913,11 +926,15 @@ ${categoryWithDesc}
 "OEE for station 1" → {"category": "oee", "confidence": 0.95, "reason": "OEE keyword"}
 "availability for station 5" → {"category": "oee", "confidence": 0.9, "reason": "availability is OEE"}
 "show quality for station 3" → {"category": "quality", "confidence": 0.95, "reason": "quality keyword"}
+"quality for all stations" → {"category": "quality", "confidence": 0.95, "reason": "quality multi-station"}
+"performance for all stations" → {"category": "performance", "confidence": 0.95, "reason": "performance multi-station"}
 "which station is slowest" → {"category": "cycle_time", "confidence": 0.85, "reason": "speed implies timing"}
 "show job report" → {"category": "cycle-monitoring", "confidence": 0.9, "reason": "job report keyword"}
 "list all stations" → {"category": "configuration", "confidence": 0.95, "reason": "station list request"}
 "show me all lines in the plant" → {"category": "configuration", "confidence": 0.95, "reason": "line list request"}
 "what alarms are configured" → {"category": "configuration", "confidence": 0.9, "reason": "alarm configuration"}
+"worst quality station" → {"category": "quality", "confidence": 0.9, "reason": "quality comparison"}
+"best performance" → {"category": "performance", "confidence": 0.9, "reason": "performance comparison"}
 "what is Java" → {"category": "general", "confidence": 0.99, "reason": "not manufacturing data"}
 
 **COMMON MISTAKES TO AVOID:**

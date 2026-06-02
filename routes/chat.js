@@ -251,14 +251,27 @@ router.post('/', async (req, res) => {
         console.log(`[ROUTING] Confidence: ${((apiPlan.confidence ?? 1) * 100).toFixed(0)}%`);
         console.log(`[ROUTING] Intent Category: ${apiPlan.intentCategory || 'unknown'}`);
         console.log(`[ROUTING] API: ${apiPlan.apiId || apiPlan.chainId || 'none'}`);
+        console.log(`[ROUTING] requiresAPI: ${requiresAPI}`);
         if (apiPlan.calls && apiPlan.calls.length > 0) {
           console.log(`[ROUTING] Query Params from LLM:`, JSON.stringify(apiPlan.calls[0].queryParams, null, 2));
         }
+        
+        // DEBUG: Warn if requiresAPI is true but no API selected
+        if (requiresAPI && !apiPlan.apiId && !apiPlan.chainId && !apiPlan.multipleAPIs) {
+          console.warn(`[ROUTING WARNING] requiresAPI=true but no apiId/chainId specified! Will fallback to general response.`);
+          console.log(`[ROUTING DEBUG] Full LLM response:`, JSON.stringify(parsed, null, 2));
+        }
+      } else {
+        console.warn(`[ROUTING WARNING] Could not parse JSON from LLM response`);
+        console.log(`[ROUTING DEBUG] Raw LLM response:`, classifyResult.content);
       }
-    } catch {
+    } catch (parseErr) {
       // Fallback: keyword match
+      console.warn(`[ROUTING WARNING] JSON parse error: ${parseErr.message}`);
+      console.log(`[ROUTING DEBUG] Raw response:`, classifyResult.content);
       const allKeywords = registry.apis.flatMap(a => a.keywords || []);
       requiresAPI = allKeywords.some(k => message.toLowerCase().includes(k.toLowerCase()));
+      console.log(`[ROUTING] Fallback keyword match result: requiresAPI=${requiresAPI}`);
     }
 
     let apiResults = [];
@@ -266,6 +279,8 @@ router.post('/', async (req, res) => {
     let clarificationSent = false;
 
     if (requiresAPI && apiPlan) {
+      console.log(`[API EXECUTION] Entering API call block`);
+      
       // ── Handle low confidence routing ──────────────
       const confidenceThreshold = registry.routingConfig?.confidenceThreshold || 0.7;
       const confidenceResult = handleLowConfidence(apiPlan, confidenceThreshold);
@@ -302,7 +317,17 @@ router.post('/', async (req, res) => {
           ? [{ apiId: apiPlan.apiId, pathParams: apiPlan.pathParams, queryParams: apiPlan.queryParams, requestBody: apiPlan.requestBody, clientFilter: apiPlan.clientFilter }]
           : [];
 
+      console.log(`[API EXECUTION] callsToMake: ${JSON.stringify(callsToMake.map(c => c.apiId))}`);
+      if (callsToMake.length === 0 || (callsToMake.length === 1 && !callsToMake[0].apiId)) {
+        console.warn(`[API EXECUTION] No valid API calls to make - will skip to analyzer`);
+      }
+
       for (const call of callsToMake) {
+        if (!call.apiId) {
+          console.warn(`[API EXECUTION] Skipping call with no apiId`);
+          continue;
+        }
+        
         // Look up API definition in main registry first, then cache registry
         let apiDef = registry.apis.find(a => a.id === call.apiId);
         let isFromCacheRegistry = false;
@@ -488,11 +513,21 @@ router.post('/', async (req, res) => {
           }
         }
       }
+    } else {
+      // Not entering API call block - log why
+      if (!requiresAPI) {
+        console.log(`[API EXECUTION] Skipping API calls - requiresAPI=false`);
+      } else if (!apiPlan) {
+        console.log(`[API EXECUTION] Skipping API calls - apiPlan is null/undefined`);
+      }
     }
 
     // ── STEP 3: Generate human-readable response ──
     // Skip if clarification was already sent to the user
     if (clarificationSent) return res.end();
+
+    // Log what data we have for interpretation
+    console.log(`[INTERPRET] API results count: ${apiResults.length}, API calls made: ${apiCallsMade.length}`);
 
     send('status', { step: 'interpret', message: '💬 Crafting your answer...' });
 

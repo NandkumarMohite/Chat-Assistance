@@ -15,10 +15,14 @@
       "get_tree_view_of_cycle_time"
     ],
     "quality": [
-      "get_station_quality"
+      "get_station_quality",
+      "get_tree_view_of_oee_data",
+      "get_kpi_summary_full_data"
     ],
     "performance": [
-      "get_performance_and_productivity"
+      "get_performance_and_productivity",
+      "get_tree_view_of_oee_data",
+      "get_kpi_summary_full_data"
     ],
     "cycle-monitoring": [
       "get_job_report_data",
