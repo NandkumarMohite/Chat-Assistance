@@ -104,6 +104,11 @@ const ENTITY_CONFIG = {
     idField: 'id',
     nameFields: ['code'],
     label: 'alarm'
+  },
+  // Models are not cached — pass the user-supplied string straight through to the API.
+  model: {
+    passThrough: true,
+    label: 'model'
   }
 };
 
@@ -122,7 +127,10 @@ const PARAM_ENTITY_MAP = {
   stationAlarmId: 'station_alarm',
   lineLinkId: 'all_line_link',
   lineBufferId: 'all_line_buffer',
-  energyMeterId: 'all_energy_meter'
+  energyMeterId: 'all_energy_meter',
+  modelId:    'model',
+  models:     'model',
+  model:      'model'
 };
 
 // ── Maps "name-type" params → { entity type, target ID param } ──
@@ -141,7 +149,9 @@ const NAME_PARAM_TO_ID_MAP = {
   stationAlarmName: { entityType: 'station_alarm', idParam: 'stationAlarmId' },
   lineLinkName: { entityType: 'all_line_link', idParam: 'lineLinkId' },
   lineBufferName: { entityType: 'all_line_buffer', idParam: 'lineBufferId' },
-  energyMeterName: { entityType: 'all_energy_meter', idParam: 'energyMeterId' }
+  energyMeterName: { entityType: 'all_energy_meter', idParam: 'energyMeterId' },
+  modelName: { entityType: 'model', idParam: 'models' },
+  model:     { entityType: 'model', idParam: 'models' }
 };
 
 // ── Maps API response fields (ID fields) to entity types for enrichment ──
@@ -206,6 +216,12 @@ function resolveEntity(value, entityType, options = {}) {
   if (!config) return { id: value, confidence: 0, notResolved: true };
 
   const strVal = String(value).trim();
+
+  // Pass-through entities (e.g. model) — no cache lookup, send string straight to API
+  if (config.passThrough) {
+    console.log(`[ENTITY RESOLVER] "${strVal}" → ${config.label} (pass-through, no resolution)`);
+    return { id: strVal, name: strVal, confidence: 1, passThrough: true };
+  }
 
   // Already a numeric ID — pass through unchanged
   if (/^\d+$/.test(strVal)) {

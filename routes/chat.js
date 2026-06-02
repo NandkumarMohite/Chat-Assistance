@@ -10,7 +10,7 @@ const { callOllama, extractJSON } = require('../core/ollama');
 const { executeAPICall, applyClientFilter, executeDependencyChain } = require('../core/executor');
 const { getCachedResponse, getCacheRegistry: getCacheRegistryFromCache } = require('../core/cacheRegistry');
 const { resolveCallParams, buildClarificationMessage, enrichResponseWithNames } = require('../core/entityResolver');
-const { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt } = require('../core/prompts');
+const { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt, buildScopeDetectionPrompt } = require('../core/prompts');
 const { resolveTemporalQueryParams } = require('../core/dateRange');
 const { getMockResponse } = require('../core/test-mock-data');
 const { TEST_LOCALLY } = require('../core/config');
@@ -215,6 +215,57 @@ router.post('/', async (req, res) => {
           if (intentCategories[categoryParsed.category]) {
             apiDescriptionOptions.category = categoryParsed.category;
             console.log(`[PRE-FILTER] Filtering API list to category: ${categoryParsed.category}`);
+
+            // ── STAGE 2: Scope/level detection — narrow further by API "level" ──
+            try {
+              const categoryApiIds = intentCategories[categoryParsed.category] || [];
+              const categoryApis = (registry.apis || []).filter(a =>
+                categoryApiIds.includes(a.id) ||
+                (a.category && a.category.toLowerCase() === categoryParsed.category.toLowerCase())
+              );
+
+              if (categoryApis.length > 1) {
+                console.log(`[SCOPE-FILTER] ${categoryApis.length} APIs in category — running scope detection...`);
+                const scopeResult = await callOllama(
+                  buildScopeDetectionPrompt(categoryApis.map(a => ({ id: a.id, name: a.name, level: a.level }))),
+                  effectiveMessage,
+                  false,
+                  routerModel || null
+                );
+                const scopeParsed = extractJSON(scopeResult.content);
+                const scope = scopeParsed?.scope;
+                const scopeConf = scopeParsed?.confidence ?? 0;
+                console.log(`[SCOPE-FILTER] LLM scope: "${scope}" (confidence ${(scopeConf * 100).toFixed(0)}%, reason: ${scopeParsed?.reason || 'n/a'})`);
+
+                if (scope && scope !== 'any' && scopeConf >= 0.6) {
+                  // Map scope → level keywords (case-insensitive substring match on api.level entries)
+                  const SCOPE_LEVEL_MATCH = {
+                    single_station: (lvls) => lvls.some(l => /station/i.test(l)) && !lvls.some(l => /multi|compare|plant/i.test(l)),
+                    multi_station:  (lvls) => lvls.some(l => /multi.*station|compare/i.test(l)),
+                    plant_wide:     (lvls) => lvls.some(l => /multi.*station|multi.*line|plant|compare/i.test(l)),
+                    compare:        (lvls) => lvls.some(l => /compare|multi/i.test(l)),
+                    product:        (lvls) => lvls.some(l => /product/i.test(l)),
+                    job:            (lvls) => lvls.some(l => /job/i.test(l))
+                  };
+                  const matcher = SCOPE_LEVEL_MATCH[scope];
+                  if (matcher) {
+                    const filtered = categoryApis.filter(a => matcher(a.level || []));
+                    if (filtered.length > 0) {
+                      apiDescriptionOptions.apiIds = filtered.map(a => a.id);
+                      console.log(`[SCOPE-FILTER] Narrowed to ${filtered.length} API(s) by level: ${apiDescriptionOptions.apiIds.join(', ')}`);
+                    } else {
+                      console.log(`[SCOPE-FILTER] No APIs matched scope "${scope}" — keeping full category list`);
+                    }
+                  }
+                } else {
+                  console.log(`[SCOPE-FILTER] Scope unclear or low confidence — keeping full category list`);
+                }
+              } else {
+                console.log(`[SCOPE-FILTER] Only ${categoryApis.length} API in category — skipping scope detection`);
+              }
+            } catch (scopeErr) {
+              console.warn(`[SCOPE-FILTER] Scope detection failed:`, scopeErr.message);
+            }
           } else {
             console.log(`[PRE-FILTER] Category "${categoryParsed.category}" not in registry, sending full API list`);
           }
@@ -255,9 +306,26 @@ router.post('/', async (req, res) => {
         if (apiPlan.calls && apiPlan.calls.length > 0) {
           console.log(`[ROUTING] Query Params from LLM:`, JSON.stringify(apiPlan.calls[0].queryParams, null, 2));
         }
-        
+
+        // ── VALIDATE apiId against registry — reject invented IDs ──
+        if (requiresAPI && apiPlan.apiId) {
+          const cacheReg = (typeof getCacheRegistry === 'function') ? (getCacheRegistry() || {}) : {};
+          const validApiIds = new Set([
+            ...(registry.apis || []).map(a => a.id),
+            ...((cacheReg.apis) || []).map(a => a.id)
+          ]);
+          if (!validApiIds.has(apiPlan.apiId)) {
+            console.error(`[ROUTING ERROR] LLM returned INVALID apiId: "${apiPlan.apiId}" — not in registry. Rejecting.`);
+            console.error(`[ROUTING ERROR] Valid IDs sample:`, [...validApiIds].slice(0, 10));
+            requiresAPI = false;
+            apiPlan = null;
+          } else {
+            console.log(`[ROUTING] apiId "${apiPlan.apiId}" validated against registry ✓`);
+          }
+        }
+
         // DEBUG: Warn if requiresAPI is true but no API selected
-        if (requiresAPI && !apiPlan.apiId && !apiPlan.chainId && !apiPlan.multipleAPIs) {
+        if (requiresAPI && apiPlan && !apiPlan.apiId && !apiPlan.chainId && !apiPlan.multipleAPIs) {
           console.warn(`[ROUTING WARNING] requiresAPI=true but no apiId/chainId specified! Will fallback to general response.`);
           console.log(`[ROUTING DEBUG] Full LLM response:`, JSON.stringify(parsed, null, 2));
         }

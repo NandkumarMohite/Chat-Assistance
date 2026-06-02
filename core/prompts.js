@@ -26,6 +26,13 @@ function buildClassifyPrompt(apiDescription, chainDescriptions, routingConfig = 
   
 You are an intelligent API routing assistant. Determine if the user's question requires calling an API or can be answered from general knowledge.
 
+⚠️⚠️⚠️ CRITICAL RULES — READ FIRST ⚠️⚠️⚠️
+✋ The API list below has ALREADY been pre-filtered to match the user's intent category.
+✋ You MUST select EXACTLY ONE apiId from the list below — never invent, guess, or modify an API id.
+✋ If you cannot find a perfect match in the list, pick the CLOSEST one from the list — DO NOT make up a new id.
+✋ The "apiId" field in your JSON response MUST be a verbatim copy of an "id:" value from the API list below.
+✋ DO NOT output partial names, abbreviations, paths, or new ids like "get_quality_data" if it isn't in the list.
+
 ${apiDescription}
 
 Respond with ONLY a JSON object (no markdown, no explanation):
@@ -216,6 +223,18 @@ ${chainDescriptions}
 - If you need to call multiple APIs, set multipleAPIs to true and list them in apiCalls array.
 - If the user's question is general knowledge (e.g. "what is Java?"), set requiresAPI to false.
 - apiId must exactly match one of the API ids listed above.
+
+⚠️ MODEL PARAMETER EXTRACTION (CRITICAL):
+  When the user mentions a MODEL identifier, extract it into the "models" or "modelId" parameter.
+  Triggers: "model X", "modelId X", "modelName X", "for model X", "of model X"
+  Models are typically uppercase codes like J5, MK, MODEL_X, M1, MK_A, etc.
+  EXAMPLES:
+  - "give me data for model J5" → queryParams: { ..., "models": "J5" }
+  - "OEE for station 1 model J5" → queryParams: { "stationId": 1, "models": "J5" }
+  - "cycle time for modelId MK in station S1" → queryParams: { "stationIds": "1", "models": "MK" }
+  - "worst OEE for model MODEL_X" → queryParams: { "models": "MODEL_X" }
+  - "modelName J5 quality" → queryParams: { "models": "J5" }
+  Use the EXACT parameter name the API expects (check param list — usually "models" plural for multi-model APIs, "modelId" for single-model APIs).
 
 Do NOT include any other text, markdown, or explanation outside the JSON.`;
 }
@@ -946,4 +965,52 @@ ${categoryWithDesc}
 ❌ "all stations" alone is NOT oee - check what metric is asked (could be config, cycle_time, quality, etc.)`;
 }
 
-module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt };
+// ── Lightweight scope/level detection prompt (STAGE 2) ──
+// After category is detected, classify the user's SCOPE so we can further
+// narrow the API list by each API's "level" field.
+// Returns one of: single_station | multi_station | plant_wide | compare | product | job | any
+function buildScopeDetectionPrompt(categoryApiList) {
+  // categoryApiList: [{ id, name, level: [...] }, ...] — APIs already filtered by category
+  const apisLine = (categoryApiList || [])
+    .map(a => `  - ${a.id} → level: [${(a.level || []).join(', ') || 'unspecified'}]`)
+    .join('\n');
+
+  return `You are a fast scope classifier for a manufacturing analytics router.
+
+The user's intent CATEGORY is already known. The candidate APIs in that category (with their supported "level" / scope) are:
+${apisLine}
+
+**YOUR TASK:** From the user's message, decide the SCOPE the user is asking about. This will be matched against each API's "level" field to pick the right one.
+
+**RESPOND WITH ONLY JSON (no markdown):**
+{
+  "scope": "single_station" | "multi_station" | "plant_wide" | "compare" | "product" | "job" | "any",
+  "confidence": 0.0-1.0,
+  "reason": "2-6 word explanation"
+}
+
+**SCOPE DEFINITIONS:**
+- **single_station**: User mentions ONE specific station (e.g. "station 1", "for station MB_10", "OP101"). Match APIs whose level contains "Station".
+- **multi_station**: User mentions MULTIPLE stations or a list (e.g. "stations 1 and 2", "stations 101,102"). Match APIs whose level contains "Multi Station".
+- **plant_wide**: User wants ALL stations / FULL PLANT / OVERALL data, with no station filter (e.g. "all stations", "full plant", "plant-wide", "overall OEE", "every station"). Match APIs whose level contains "Multi Station", "Multi Line", or "Plant".
+- **compare**: User wants to COMPARE / RANK / find best/worst across stations, models, or lines (e.g. "worst OEE station", "best performance", "compare quality"). Match APIs whose level contains "Compare" or "Multi".
+- **product**: User mentions a product / serial number / job. Match APIs whose level contains "Product" or "Job".
+- **job**: User asks about a specific job report or job-level cycle. Match APIs whose level contains "Job".
+- **any**: Cannot determine scope from message — keep all candidates.
+
+**EXAMPLES:**
+"OEE for station 1" → {"scope":"single_station","confidence":0.98,"reason":"one station mentioned"}
+"OEE for all stations" → {"scope":"plant_wide","confidence":0.95,"reason":"all stations / no filter"}
+"full plant cycle time" → {"scope":"plant_wide","confidence":0.97,"reason":"full plant keyword"}
+"cycle time for stations 101 and 102" → {"scope":"multi_station","confidence":0.95,"reason":"explicit multi list"}
+"worst OEE station" → {"scope":"compare","confidence":0.95,"reason":"ranking across stations"}
+"best performance" → {"scope":"compare","confidence":0.9,"reason":"ranking word"}
+"quality for station 5" → {"scope":"single_station","confidence":0.97,"reason":"one station"}
+"quality for all stations" → {"scope":"plant_wide","confidence":0.95,"reason":"all stations"}
+"product history of ABC-123" → {"scope":"product","confidence":0.95,"reason":"serial number"}
+"job report for JOB_001" → {"scope":"job","confidence":0.95,"reason":"job id"}
+"OEE" → {"scope":"any","confidence":0.4,"reason":"no scope hint"}
+`;
+}
+
+module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt, buildScopeDetectionPrompt };

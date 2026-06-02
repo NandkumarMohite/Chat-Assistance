@@ -27,9 +27,9 @@ services:
     environment:
       - PORT=3000
       - OLLAMA_URL=http://ollama-service:11434
-      - OLLAMA_MODEL={OLLAMA_MODEL}
-      - OlLAMA_ROUTER_MODEL={OLLAMA_ROUTER_MODEL}
-      - OLLAMA_ANALYZER_MODEL={OLLAMA_ANALYZER_MODEL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - OLLAMA_ROUTER_MODEL=${OLLAMA_ROUTER_MODEL}
+      - OLLAMA_ANALYZER_MODEL=${OLLAMA_ANALYZER_MODEL}
       # 🌍 Point this to your actual backend (External or Microservice)
       # This overrides the 'baseUrl' in api-registry.json
       - BACKEND_URL=${BACKEND_URL}
@@ -38,6 +38,14 @@ services:
     restart: unless-stopped
     networks:
       - chat-network
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]  
 
 networks:
   chat-network:
