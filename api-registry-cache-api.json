@@ -25,6 +25,25 @@
       "id": "get_all_stations",
       "name": "Get Stations",
       "category": "configuration",
+      "level": ["Plant", "Multi Station"],
+      "disambiguationHints": [
+        "Use when user asks for station list, station configuration, or station master data",
+        "Use to find station IDs, names, or working modes",
+        "NOT for OEE, cycle time, or performance data - use analytics APIs for those"
+      ],
+      "canBeUsedFor": [
+        "Listing all stations in the plant",
+        "Finding station configuration details",
+        "Looking up station IDs by name",
+        "Checking station working modes"
+      ],
+      "responseHints": [
+        "id (station ID)",
+        "name (station name)",
+        "workingMode (AUTO/MANUAL)",
+        "stationLineOrder (FIRST/LAST/MIDDLE)",
+        "cycleTimeMillis (configured cycle time)"
+      ],
       "description": "Retrieve stations information with optional filters for line, area, and pagination.",
       "method": "GET",
       "path": "/bff/get-stations",
@@ -108,6 +127,24 @@
       "id": "get_all_virtual_devices",
       "name": "Get all Virtual Devices",
       "category": "configuration",
+      "level": ["Plant", "Multi Station"],
+      "disambiguationHints": [
+        "Use when user asks about devices, PLCs, or collectors",
+        "Use to find device IDs, IP addresses, or communication types",
+        "NOT for device alarms or operational data"
+      ],
+      "canBeUsedFor": [
+        "Listing all virtual devices in the plant",
+        "Finding device configurations",
+        "Looking up device-station mappings"
+      ],
+      "responseHints": [
+        "id (device ID)",
+        "name (device name)",
+        "ipAddress",
+        "communicationType (PLC/etc)",
+        "station (associated station info)"
+      ],
       "description": "Retrieve all virtual devices",
       "method": "GET",
       "path": "/bff/virtual-devices",
@@ -181,6 +218,23 @@
       "id": "get_all_station_links",
       "name": "Get All Station Links",
       "category": "configuration",
+      "level": ["Plant", "Multi Station"],
+      "disambiguationHints": [
+        "Use when user asks about station connections, AGV links, or material flow",
+        "Use to find how stations are connected",
+        "NOT for performance or timing data between stations"
+      ],
+      "canBeUsedFor": [
+        "Listing station-to-station connections",
+        "Finding AGV routes between stations",
+        "Understanding material flow configuration"
+      ],
+      "responseHints": [
+        "fromStationId, toStationId",
+        "linkType (AGV/CONVEYOR/etc)",
+        "journeyTimeMillis",
+        "stationLinkBufferDTO (buffer info)"
+      ],
       "description": "Retrieve all station links with optional line filter.",
       "method": "GET",
       "path": "/bff/get-station-links",
@@ -243,6 +297,22 @@
       "id": "get_all_station_link_buffer",
       "name": "Get Station Link Buffer",
       "category": "configuration",
+      "level": ["Plant", "Multi Station"],
+      "disambiguationHints": [
+        "Use when user asks about buffers between stations",
+        "Use to find buffer capacity or buffer names",
+        "NOT for buffer utilization or WIP levels"
+      ],
+      "canBeUsedFor": [
+        "Listing buffer configurations",
+        "Finding buffer capacities",
+        "Understanding inter-station storage"
+      ],
+      "responseHints": [
+        "bufferName",
+        "bufferCapacity",
+        "bufferType"
+      ],
       "description": "Retrieve buffer configuration for station links, optionally including line buffers.",
       "method": "GET",
       "path": "/bff/get-station-link-buffer",
@@ -289,6 +359,23 @@
       "id": "get_all_station_alarms",
       "name": "Get All Station Alarms",
       "category": "configuration",
+      "level": ["Station"],
+      "disambiguationHints": [
+        "Use when user asks about alarm mappings for a specific station",
+        "Requires stationId parameter",
+        "NOT for active/triggered alarms - this is alarm configuration only"
+      ],
+      "canBeUsedFor": [
+        "Listing alarm configurations for a station",
+        "Finding alarm variable mappings",
+        "Looking up alarm IDs by station"
+      ],
+      "responseHints": [
+        "alarmId",
+        "stationName",
+        "variableId",
+        "comparingValue"
+      ],
       "description": "Retrieve all alarm mappings belonging to a station with optional language and verbose mode.",
       "method": "GET",
       "path": "/bff/get-station-alarms/{stationId}",
@@ -350,6 +437,22 @@
       "id": "get_all_lines",
       "name": "Get All Lines",
       "category": "configuration",
+      "level": ["Plant", "Multi Line"],
+      "disambiguationHints": [
+        "Use when user asks for line list, line names, or line configuration",
+        "Use to find line IDs or line descriptions",
+        "NOT for line OEE or performance - use analytics APIs for those"
+      ],
+      "canBeUsedFor": [
+        "Listing all production lines",
+        "Finding line IDs by name",
+        "Looking up line descriptions"
+      ],
+      "responseHints": [
+        "id (line ID)",
+        "name (line name)",
+        "description"
+      ],
       "description": "Retrieve information about all plant lines with optional name filter and pagination.",
       "method": "GET",
       "path": "/bff/get-lines",
@@ -409,6 +512,23 @@
       "id": "get_all_line_links",
       "name": "Get All Line Links",
       "category": "configuration",
+      "level": ["Plant", "Multi Line"],
+      "disambiguationHints": [
+        "Use when user asks about line-to-line connections",
+        "Use to find how production lines are linked",
+        "NOT for material flow timing between lines"
+      ],
+      "canBeUsedFor": [
+        "Listing line connections",
+        "Understanding plant layout topology",
+        "Finding line link configurations"
+      ],
+      "responseHints": [
+        "fromLineId, toLineId",
+        "fromLineName, toLineName",
+        "linkType",
+        "journeyTimeMillis"
+      ],
       "description": "Retrieve all line links with pagination.",
       "method": "GET",
       "path": "/bff/get-all-line-links",
@@ -466,6 +586,22 @@
       "id": "get_all_line_buffer",
       "name": "Get All Line Buffer",
       "category": "configuration",
+      "level": ["Plant", "Multi Line"],
+      "disambiguationHints": [
+        "Use when user asks about buffers between lines",
+        "Use to find inter-line buffer capacities",
+        "NOT for buffer utilization or WIP levels"
+      ],
+      "canBeUsedFor": [
+        "Listing line buffer configurations",
+        "Finding buffer capacities between lines",
+        "Understanding inter-line storage"
+      ],
+      "responseHints": [
+        "bufferName",
+        "bufferCapacity",
+        "bufferType"
+      ],
       "description": "Retrieve all line buffers with pagination.",
       "method": "GET",
       "path": "/bff/get-all-line-buffer",
@@ -519,6 +655,23 @@
       "id": "get_all_energy_meters",
       "name": "Get All Energy Meters",
       "category": "configuration",
+      "level": ["Plant"],
+      "disambiguationHints": [
+        "Use when user asks about energy meters or power monitoring",
+        "Use to find energy meter configurations",
+        "NOT for energy consumption data - this is configuration only"
+      ],
+      "canBeUsedFor": [
+        "Listing all energy meters",
+        "Finding meter-station associations",
+        "Looking up energy monitoring setup"
+      ],
+      "responseHints": [
+        "energyMeterName",
+        "description",
+        "virtualDeviceId",
+        "stationIds (associated stations)"
+      ],
       "description": "Retrieve all energy meter configurations.",
       "method": "GET",
       "path": "/bff/get-all-energy-meters",
@@ -555,6 +708,23 @@
       "id": "get_all_alarms",
       "name": "Get Alarms",
       "category": "configuration",
+      "level": ["Plant"],
+      "disambiguationHints": [
+        "Use when user asks for alarm definitions, alarm codes, or alarm master data",
+        "Use to find alarm configurations and severity levels",
+        "NOT for active/triggered alarms or alarm history"
+      ],
+      "canBeUsedFor": [
+        "Listing all alarm definitions",
+        "Finding alarm codes and severities",
+        "Looking up alarm configurations"
+      ],
+      "responseHints": [
+        "code (alarm code)",
+        "severity",
+        "color",
+        "isEvent"
+      ],
       "description": "Retrieve alarms with optional filters and pagination.",
       "method": "GET",
       "path": "/bff/get-alarms",

@@ -29,6 +29,18 @@
       "get_products_history",
       "get_product_quality",
       "get_product_cycles"
+    ],
+    "configuration": [
+      "get_all_stations",
+      "get_all_lines",
+      "get_all_virtual_devices",
+      "get_all_station_links",
+      "get_all_station_link_buffer",
+      "get_all_station_alarms",
+      "get_all_line_links",
+      "get_all_line_buffer",
+      "get_all_energy_meters",
+      "get_all_alarms"
     ]
   },
   "synonyms": {
@@ -191,6 +203,20 @@
         "Returns availability percentage, operating time, failures",
         "DO NOT use for 'full plant OEE' or 'overall OEE' - use get_tree_view_of_oee_data instead"
       ],
+      "exampleQueries": [
+        "OEE for station 1",
+        "availability for station 5",
+        "planned production time for station MB_10",
+        "operating time for station 101",
+        "show failures for station 3"
+      ],
+      "notForQueries": [
+        "OEE for all stations",
+        "plant OEE",
+        "compare OEE across stations",
+        "worst OEE station",
+        "best availability"
+      ],
       "description": "Retrieves OEE parameters for a specific station, including operating time, availability percentage, stop threshold, planned production time, failures, scheduled breaks, and overtime changes.",
       "method": "GET",
       "path": "/bff/get-oee-parameters",
@@ -312,6 +338,22 @@
         "Returns plantAverageCycleTime, breakdown by line/station/model",
         "stationIds is OPTIONAL - omit for full plant data"
       ],
+      "exampleQueries": [
+        "cycle time for all stations",
+        "full plant cycle time",
+        "which station is slowest",
+        "cycle time by model",
+        "compare cycle times across lines",
+        "worst cycle time station",
+        "cycle time tree"
+      ],
+      "notForQueries": [
+        "list all stations",
+        "OEE data",
+        "quality metrics"
+      ],
+      "preferOver": [],
+      "preferWhen": "Always use this API for any cycle time query - it handles both single and multiple stations",
       "description": "Retrieves cycle time metrics in a hierarchical tree format for plants, lines, stations, and models. The response includes average cycle times, total cycle counts, exceeded reference cycle counts, and detailed station and model metrics.",
       "method": "GET",
       "path": "/bff/get-tree-view-of-ct",
@@ -526,6 +568,24 @@
         "Returns breakdown by line, station, and model",
         "stationIds is OPTIONAL - omit for full plant data"
       ],
+      "exampleQueries": [
+        "OEE for all stations",
+        "full plant OEE",
+        "overall OEE",
+        "compare OEE across lines",
+        "worst OEE station",
+        "best performing station",
+        "OEE by model",
+        "plant availability"
+      ],
+      "notForQueries": [
+        "OEE for station 1",
+        "availability for station 5",
+        "cycle time data",
+        "list all stations"
+      ],
+      "preferOver": ["get_oee_parameters"],
+      "preferWhen": "User asks about multiple stations, 'all stations', plant-wide data, comparisons, or best/worst",
       "description": "Retrieves OEE metrics in a hierarchical tree format for plants, lines, stations, and models. The response includes OEE, availability, performance, and quality metrics at plant, line, station, component, and model levels.",
       "method": "GET",
       "path": "/bff/get-tree-view-of-oee-data",
@@ -726,6 +786,18 @@
         "Returns quality percentage, cycle counts by model",
         "Requires stationId - not for plant-wide quality"
       ],
+      "exampleQueries": [
+        "quality for station 1",
+        "good/bad cycles for station 5",
+        "ok/nok cycles for station MB_10",
+        "defect rate for station 3"
+      ],
+      "notForQueries": [
+        "quality for all stations",
+        "compare quality across stations",
+        "worst quality station",
+        "OEE data"
+      ],
       "description": "Retrieves quality metrics for a specific station, including overall quality percentage, total cycles, good cycles, bad cycles, and model-wise quality distribution. Supports filtering with or without reworked cycles.",
       "method": "GET",
       "path": "/bff/get-quality",
@@ -842,6 +914,25 @@
     {
       "id": "get_performance_and_productivity",
       "name": "Get Performance And Productivity",
+      "category": "performance",
+      "priority": 2,
+      "disambiguationHints": [
+        "Use for SINGLE station performance and productivity metrics",
+        "Returns overall performance, productivity, and model-wise breakdown",
+        "Requires stationId"
+      ],
+      "exampleQueries": [
+        "performance for station 1",
+        "productivity for station 5",
+        "throughput for station MB_10",
+        "capacity utilization for station 3"
+      ],
+      "notForQueries": [
+        "performance for all stations",
+        "compare performance across stations",
+        "OEE data",
+        "cycle time data"
+      ],
       "description": "Retrieves performance and productivity metrics for a specific station, including overall performance, overall productivity, and model-wise distribution of performance statistics such as cycles, capacity, and production targets.",
       "method": "GET",
       "path": "/bff/get-performance-and-productivity",

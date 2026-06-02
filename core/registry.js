@@ -135,6 +135,30 @@ function buildAPIDescription(options = {}) {
       }
     }
 
+    // Example queries that should match this API
+    if (api.exampleQueries && api.exampleQueries.length > 0) {
+      desc += `  Example queries:\n`;
+      for (const example of api.exampleQueries) {
+        desc += `    ✓ "${example}"\n`;
+      }
+    }
+
+    // Queries that should NOT match this API
+    if (api.notForQueries && api.notForQueries.length > 0) {
+      desc += `  NOT for these queries:\n`;
+      for (const notFor of api.notForQueries) {
+        desc += `    ✗ "${notFor}"\n`;
+      }
+    }
+
+    // Prefer this API over others in certain cases
+    if (api.preferOver && api.preferOver.length > 0) {
+      desc += `  Prefer this over: ${api.preferOver.join(', ')}\n`;
+    }
+    if (api.preferWhen) {
+      desc += `  Prefer when: ${api.preferWhen}\n`;
+    }
+
     if (api.parameters && api.parameters.length > 0) {
       desc += `  Path Parameters:\n`;
       for (const p of api.parameters) {

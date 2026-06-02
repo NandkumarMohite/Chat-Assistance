@@ -96,47 +96,59 @@ RULES:
   - "full plant cycle time" → NO stationIds filter needed, just use startDate/endDate
   - "cycle time for stations 101 and 102" → queryParams: { "stationIds": [101, 102], "startDate": "...", "endDate": "..." }
   - "OEE for station 1" → queryParams: { "stationId": 1 } (because this API uses singular stationId)
-- API SELECTION STRATEGY (use in order):
-  1. FIRST: Check the "Level" field - match user's scope (single station vs multi-station vs plant-wide)
-  2. SECOND: Match user's intent with API "Trigger keywords/phrases"
-  3. THIRD: Check "Response contains" hints - if user asks for specific data, find the API that returns it
-  4. FOURTH: Check "Response fields" - actual field names from the API response
-  5. FIFTH: Check "Can be used for" - this field explicitly lists the use-cases each API is suited for; if the user's request matches one of these use-cases, strongly prefer that API
-  6. SIXTH: Check "Related APIs" - each API lists related API ids; if a related API is a closer match to the user's exact intent, switch to that API's id. Related API ids follow the same $ notation used in dependency chains (e.g. get_oee_parameters, get_busy_oee_station). Always pick the exact id from the registry — never invent an id.
+- API SELECTION STRATEGY (FOLLOW THIS EXACT ORDER):
+  
+  **STEP 1: INTENT CATEGORY DETECTION** (Already done - APIs are pre-filtered)
+  The APIs shown above are already filtered to match the user's intent category.
+  Categories: oee | cycle_time | quality | performance | cycle-monitoring | product-details
+  
+  **STEP 2: LEVEL MATCHING** (MOST IMPORTANT - Check first!)
+  Match the user's SCOPE to the API's "Level" field:
+  
+  | User Asks About | Level to Match | Example APIs |
+  |-----------------|----------------|--------------|
+  | ONE station (e.g., "station 1", "station 5") | "Station" | get_oee_parameters, get_station_quality |
+  | MULTIPLE stations or "all stations" | "Multi Station" | get_tree_view_of_cycle_time, get_tree_view_of_oee_data |
+  | PLANT-WIDE or "full plant" | "Multi Line", "Multi Station" | get_tree_view_of_* APIs |
+  | COMPARE or find "best/worst" | "Compare Multiple Station/Models/Lines" | get_tree_view_of_* APIs |
+  
+  **STEP 3: KEYWORD & TRIGGER PHRASE MATCHING**
+  Match user's words against API's "Trigger keywords/phrases" field.
+  Example: User says "availability" → matches get_oee_parameters keyword "availability for Station"
+  
+  **STEP 4: DISAMBIGUATION HINTS CHECK**
+  Read the API's "disambiguationHints" field to confirm it's the right choice:
+  - "Use for SINGLE station OEE metrics" → confirms single-station use
+  - "NOT for plant-wide OEE" → warns when NOT to use this API
+  
+  **STEP 5: CAN BE USED FOR MATCHING**
+  Check the API's "Can be used for" field - this lists explicit use-cases:
+  - If user's request matches a listed use-case, STRONGLY prefer that API
+  - Example: "Tracking Single Station OEE" matches "OEE for station 1"
+  
+  **STEP 6: RESPONSE HINTS VALIDATION**
+  Check "Response contains" / "responseHints" to verify the API returns what user needs:
+  - User asks for "operating time" → check if API's responseHints includes "time (operating time)"
+  - User asks for "model breakdown" → check if API returns "modelMetrics"
+  
+  **STEP 7: RELATED APIs FALLBACK** (Only if no direct match found)
+  If you cannot find an exact API match:
+  1. Check each API's "Related APIs" field
+  2. If a relatedAPI name matches user's intent, USE THE PARENT API's ID (not the related name)
+  3. Example: User asks for "product history" → found in get_products_history's relatedAPIs → use get_products_history
+  
+  ⚠️ CRITICAL: Never invent an API id. Always use an id from the registered list above.
 
-  IMPORTANT: Always select the API id from the registered list above. Never create or guess an API id.
+  **QUICK REFERENCE - LEVEL → API MAPPING:**
   
-  LEVEL → API MAPPING EXAMPLES:
-  
-  **OEE QUERIES:**
-  | User Query | Level | API | Why |
-  |------------|-------|-----|-----|
-  | "OEE for station 1" | Station | get_oee_parameters | Single station → use station-level API |
-  | "availability for station 5" | Station | get_oee_parameters | Availability is part of OEE params |
-  | "full plant OEE" | Multi | get_tree_view_of_oee_data | Plant-wide → hierarchical API |
-  | "OEE for all stations" | Multi | get_tree_view_of_oee_data | All stations → hierarchical API |
-  | "compare OEE across lines" | Multi | get_tree_view_of_oee_data | Comparison → hierarchical API |
-  | "worst OEE station" | Multi | get_tree_view_of_oee_data | Finding best/worst → need all data |
-  
-  **CYCLE TIME QUERIES:**
-  | User Query | Level | API | Why |
-  |------------|-------|-----|-----|
-  | "cycle time for all stations" | Multi | get_tree_view_of_cycle_time | All stations → hierarchical |
-  | "full plant cycle time" | Multi | get_tree_view_of_cycle_time | Plant-wide → hierarchical |
-  | "which station is slowest" | Multi | get_tree_view_of_cycle_time | Comparison → need all data |
-  | "cycle time by model" | Multi | get_tree_view_of_cycle_time | Model-level breakdown |
-  
-  **QUALITY QUERIES:**
-  | User Query | Level | API | Why |
-  |------------|-------|-----|-----|
-  | "quality for station 1" | Station | get_station_quality | Single station quality |
-  | "good/bad cycles for station 5" | Station | get_station_quality | Quality includes cycle counts |
-  
-  **PERFORMANCE QUERIES:**
-  | User Query | Level | API | Why |
-  |------------|-------|-----|-----|
-  | "performance for station 1" | Station | get_performance_and_productivity | Single station performance |
-  | "productivity by model" | Station | get_performance_and_productivity | Model-wise breakdown |
+  | Query Type | Single Station | Multi Station / Plant-Wide |
+  |------------|----------------|---------------------------|
+  | OEE | get_oee_parameters | get_tree_view_of_oee_data |
+  | Availability | get_oee_parameters | get_tree_view_of_oee_data |
+  | Cycle Time | (use tree view) | get_tree_view_of_cycle_time |
+  | Quality | get_station_quality | get_tree_view_of_oee_data |
+  | Performance | get_performance_and_productivity | get_tree_view_of_oee_data |
+  | Best/Worst comparison | N/A | Use tree view APIs |
 - If the user identifies an entity by phone, email, or name (not by ID), and a DEPENDENCY CHAIN exists for it, set chainId to that chain's id instead of apiId.
 - Available dependency chains:
 ${chainDescriptions}
@@ -822,49 +834,99 @@ EXAMPLES:
 
 // ── Lightweight category detection prompt ──
 // Used to pre-filter APIs before the main routing LLM call
+// This is STEP 1 of the API selection process
 function buildCategoryDetectionPrompt(categories) {
-  const categoryList = Object.keys(categories).map(cat => `  - ${cat}`).join('\n');
   const categoryDescriptions = {
-    'oee': 'OEE (Overall Equipment Effectiveness), availability, performance, quality metrics, efficiency',
-    'cycle_time': 'cycle time, station timing, how long operations take, speed of stations',
-    'quality': 'quality metrics, good/bad parts, defect rates, station quality',
-    'performance': 'performance metrics, productivity, throughput',
-    'cycle-monitoring': 'job reports, cycle monitoring, cycle history, cycle counts by station',
-    'product-details': 'product history, product quality, product cycles, tracking products'
+    'oee': 'OEE, Overall Equipment Effectiveness, availability, performance, quality metrics, efficiency, uptime, downtime, operating time, planned production time',
+    'cycle_time': 'cycle time, station timing, how long operations take, speed, duration, reference cycle time, exceeded cycles',
+    'quality': 'quality metrics, good/bad parts, ok/nok cycles, defect rates, station quality, reject rate',
+    'performance': 'performance metrics, productivity, throughput, capacity utilization',
+    'cycle-monitoring': 'job reports, cycle monitoring, cycle history, cycle counts by station, cycle operations',
+    'product-details': 'product history, product quality, product cycles, tracking products, product tracking',
+    'configuration': 'stations, lines, devices, alarms, buffers, links, master data, configuration, setup, list of stations, list of lines'
   };
   
   const categoryWithDesc = Object.keys(categories)
-    .map(cat => `  - ${cat}: ${categoryDescriptions[cat] || cat}`)
+    .map(cat => `  - **${cat}**: ${categoryDescriptions[cat] || cat}`)
     .join('\n');
 
-  return `You are a fast intent classifier. Given a user message, determine which API category it belongs to.
+  return `You are a fast, accurate intent classifier for a manufacturing analytics system.
 
-AVAILABLE CATEGORIES:
+**YOUR TASK:** Classify the user's message into ONE manufacturing data category.
+
+**AVAILABLE CATEGORIES:**
 ${categoryWithDesc}
-  - general: general questions not related to manufacturing data
+  - **general**: General questions NOT related to manufacturing data (e.g., "what is Java?")
 
-Respond with ONLY a JSON object (no markdown, no explanation):
+**RESPOND WITH ONLY JSON (no markdown, no explanation):**
 {
-  "category": "category_name or null if unclear",
+  "category": "category_name",
   "confidence": 0.0-1.0,
-  "reason": "brief 5-word max explanation"
+  "reason": "2-5 word explanation"
 }
 
-RULES:
-- Match the user's INTENT, not just keywords
-- "cycle time" = cycle_time category
-- "OEE", "efficiency", "availability" = oee category  
-- "quality", "good/bad parts" = quality category
-- "job report", "cycle history" = cycle-monitoring category
-- "product history", "product tracking" = product-details category
-- If unsure, set category to null and confidence to 0
-- Be fast - this is a pre-filter, not the main routing
+**CLASSIFICATION RULES:**
 
-EXAMPLES:
-"give me cycle time for station IKO" → { "category": "cycle_time", "confidence": 0.95, "reason": "cycle time request" }
-"OEE for station 1" → { "category": "oee", "confidence": 0.95, "reason": "OEE metric request" }
-"show job report" → { "category": "cycle-monitoring", "confidence": 0.9, "reason": "job report request" }
-"what is Java" → { "category": "general", "confidence": 0.99, "reason": "general knowledge" }`;
+1. **OEE Category** - Use when user mentions:
+   - "OEE", "efficiency", "effectiveness"
+   - "availability", "uptime", "downtime"
+   - "operating time", "planned production time"
+   - "station performance" (general OEE context)
+
+2. **Cycle Time Category** - Use when user mentions:
+   - "cycle time", "timing", "how long", "duration"
+   - "fastest", "slowest" (in time context)
+   - "reference cycle time", "exceeded cycles"
+
+3. **Quality Category** - Use when user mentions:
+   - "quality", "defects", "rejects"
+   - "ok cycles", "nok cycles", "good/bad"
+   - "pass/fail", "scrap rate"
+
+4. **Performance Category** - Use when user mentions:
+   - "productivity", "throughput"
+   - "capacity", "output rate"
+
+5. **Cycle Monitoring Category** - Use when user mentions:
+   - "job report", "cycle history"
+   - "cycle operations", "cycle details"
+
+6. **Product Details Category** - Use when user mentions:
+   - "product history", "product tracking"
+   - "product quality", "product cycles"
+
+7. **Configuration Category** - Use when user mentions:
+   - "list of stations", "all stations", "station list"
+   - "list of lines", "all lines", "line list"
+   - "devices", "virtual devices", "alarms", "buffers"
+   - "station links", "line links", "energy meters"
+   - Master data or configuration queries (NOT analytics)
+
+**CONFIDENCE SCORING:**
+- 0.95-1.0: Exact category keyword match (e.g., "OEE for station 1")
+- 0.80-0.94: Strong contextual match (e.g., "station efficiency")
+- 0.60-0.79: Moderate match, could be multiple categories
+- Below 0.6: Set category to null
+
+**EXAMPLES:**
+"give me cycle time for station IKO" → {"category": "cycle_time", "confidence": 0.95, "reason": "cycle time keyword"}
+"OEE for station 1" → {"category": "oee", "confidence": 0.95, "reason": "OEE keyword"}
+"availability for station 5" → {"category": "oee", "confidence": 0.9, "reason": "availability is OEE"}
+"show quality for station 3" → {"category": "quality", "confidence": 0.95, "reason": "quality keyword"}
+"which station is slowest" → {"category": "cycle_time", "confidence": 0.85, "reason": "speed implies timing"}
+"show job report" → {"category": "cycle-monitoring", "confidence": 0.9, "reason": "job report keyword"}
+"list all stations" → {"category": "configuration", "confidence": 0.95, "reason": "station list request"}
+"show me all lines in the plant" → {"category": "configuration", "confidence": 0.95, "reason": "line list request"}
+"what alarms are configured" → {"category": "configuration", "confidence": 0.9, "reason": "alarm configuration"}
+"what is Java" → {"category": "general", "confidence": 0.99, "reason": "not manufacturing data"}
+
+**COMMON MISTAKES TO AVOID:**
+❌ "list all stations" is NOT oee - it's configuration (no metrics, just station list)
+❌ "which station is slowest" is NOT performance - it's cycle_time (speed = timing)
+❌ "availability for station 1" is NOT quality - it's oee (availability is part of OEE)
+❌ "good/bad cycles" is NOT oee - it's quality (cycle quality metrics)
+❌ "productivity" is NOT oee - it's performance (productivity is performance metric)
+❌ "all stations" alone is NOT oee - check what metric is asked (could be config, cycle_time, quality, etc.)`;
 }
 
 module.exports = { buildClassifyPrompt, buildInterpretPrompt, buildGeneralPrompt, buildComparisonPrompt, buildFollowUpDetectionPrompt, buildCategoryDetectionPrompt };
